@@ -47,7 +47,6 @@ function Dashboard() {
         fetchStats();
     }, [user, location.key]);
 
-    if (!user) return null;
 
     const cards = [
         {
