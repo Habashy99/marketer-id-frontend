@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/authContext";
 import Login from "./pages/login";
 import CreateNewUser from "./pages/createNewUsers";
 import ShowAllUser from "./pages/showAllUser";
+import GivePermission from "./pages/givePermission";
 import ShowAllCoordinators from "./pages/showAllCoordinators";
 import Dashboard from "./pages/dashboard";
 import Home from "./pages/home";
@@ -18,6 +19,7 @@ function App() {
                     <Route path="/createNewUser" element={<CreateNewUser />} />
                     <Route path="/showAllCoordinators" element={<ShowAllCoordinators />} />
                     <Route path="/showAllUser" element={<ShowAllUser />} />
+                    <Route path="/givePermission" element={<GivePermission />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>
