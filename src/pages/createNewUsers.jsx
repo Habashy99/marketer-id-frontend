@@ -20,7 +20,6 @@ function CreateNewUser() {
         event.preventDefault();
         setError("");
         setSuccess("");
-
         if (!user?.id) {
             setError("لم يتم العثور على المستخدم الحالي.");
             return;
@@ -29,7 +28,7 @@ function CreateNewUser() {
         setLoading(true);
 
         try {
-            const response = await sendHttpReq("users/signup", "POST", {
+            const response = await sendHttpReq("users/createUser", "POST", {
                 code,
                 name,
                 password,
