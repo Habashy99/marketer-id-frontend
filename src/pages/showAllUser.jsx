@@ -25,7 +25,6 @@ function ShowAllUser() {
 
             try {
                 const response = await sendHttpReq("users");
-
                 const data = await response.json();
 
                 if (!response.ok) {
@@ -74,6 +73,7 @@ function ShowAllUser() {
                             <p>{error}</p>
 
                             <button
+                                type="button"
                                 onClick={() => navigate(0)}
                                 className="mt-2 underline"
                             >
@@ -85,7 +85,7 @@ function ShowAllUser() {
                     {!loading && !error && (
                         <>
                             <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200">
-                                <table className="w-full min-w-212.5 border-collapse text-right">
+                                <table className="w-full min-w-[900px] border-collapse text-right">
                                     <thead>
                                         <tr className="bg-orange-600 text-white">
                                             <th className="p-3">الكود</th>
@@ -94,6 +94,7 @@ function ShowAllUser() {
                                             <th className="p-3">تاريخ الإنشاء</th>
                                             <th className="p-3">أنشئ بواسطة</th>
                                             <th className="p-3">آخر تحديث</th>
+                                            <th className="p-3">النوع</th>
                                         </tr>
                                     </thead>
 
@@ -114,17 +115,12 @@ function ShowAllUser() {
 
                                                     <td className="p-3">
                                                         {item.auths?.length > 0 ? (
-                                                            <div className="flex flex-wrap gap-2 justify-center">
-                                                                {item.auths.map(
-                                                                    (auth) => (
-                                                                        <span
-                                                                            key={auth.id}
-                                                                            className="rounded-full bg-orange-100 px-3 py-1 text-sm text-orange-700"
-                                                                        >
-                                                                            {auth.authName}
-                                                                        </span>
-                                                                    )
-                                                                )}
+                                                            <div className="flex flex-wrap justify-center gap-2">
+                                                                {item.auths.map((auth) => (
+                                                                    <span key={auth.id}>
+                                                                        {auth.authName}
+                                                                    </span>
+                                                                ))}
                                                             </div>
                                                         ) : (
                                                             <span className="text-gray-400">
@@ -156,12 +152,16 @@ function ShowAllUser() {
                                                             )
                                                             : "-"}
                                                     </td>
+
+                                                    <td className="p-3">
+                                                        {item.type ?? "-"}
+                                                    </td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
                                                 <td
-                                                    colSpan="6"
+                                                    colSpan={7}
                                                     className="p-6 text-gray-500"
                                                 >
                                                     لا يوجد مستخدمون لعرضهم
