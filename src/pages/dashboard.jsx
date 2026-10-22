@@ -113,7 +113,7 @@ function Dashboard() {
                 </button>
 
                 <button
-                    onClick={() => navigate("/permissions")}
+                    onClick={() => navigate("/givePermission")}
                     className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
                 >
                     منح الإذن للمستخدم
