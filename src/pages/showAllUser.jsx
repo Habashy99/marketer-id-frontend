@@ -8,10 +8,12 @@ import { useAuth } from "../context/authContext";
 function ShowAllUser() {
     const { user } = useAuth();
     const navigate = useNavigate();
-
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [searchCode, setSearchCode] = useState("");
+    const [submittedCode, setSubmittedCode] = useState("");
+    const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
         if (!user) {
@@ -19,12 +21,20 @@ function ShowAllUser() {
             return;
         }
 
+        let cancelled = false;
+
         const fetchUsers = async () => {
             setLoading(true);
             setError("");
 
             try {
-                const response = await sendHttpReq("users");
+                const code = submittedCode.trim();
+
+                const query = code
+                    ? `?code=${encodeURIComponent(code)}`
+                    : "";
+
+                const response = await sendHttpReq(`users${query}`);
                 const data = await response.json();
 
                 if (!response.ok) {
@@ -33,18 +43,56 @@ function ShowAllUser() {
                     );
                 }
 
-                setUsers(data.users || []);
+                if (!cancelled) {
+                    setUsers(data.users || []);
+                }
             } catch (err) {
-                setError(err.message || "Something went wrong");
+                if (!cancelled) {
+                    setUsers([]);
+                    setError(err.message || "Something went wrong");
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchUsers();
-    }, [user, navigate]);
 
-    if (!user) return null;
+        return () => {
+            cancelled = true;
+        };
+    }, [user, navigate, submittedCode, refreshKey]);
+
+    const handleSearch = (event) => {
+        event.preventDefault();
+
+        const code = searchCode.trim();
+
+        if (!code) {
+            setError("من فضلك أدخل كود المستخدم للبحث");
+            return;
+        }
+
+        setError("");
+        setSubmittedCode(code);
+    };
+
+    const handleShowAll = () => {
+        setSearchCode("");
+        setSubmittedCode("");
+        setError("");
+        setRefreshKey((current) => current + 1);
+    };
+
+    const handleRetry = () => {
+        setRefreshKey((current) => current + 1);
+    };
+
+    if (!user) {
+        return null;
+    }
 
     return (
         <>
@@ -62,19 +110,55 @@ function ShowAllUser() {
                         عرض المستخدمين والصلاحيات الخاصة بهم
                     </p>
 
+                    {/* Search */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="mt-6 flex flex-col gap-3 sm:flex-row"
+                    >
+                        <input
+                            type="text"
+                            name="searchCode"
+                            placeholder="ابحث بكود المستخدم..."
+                            value={searchCode}
+                            onChange={(event) =>
+                                setSearchCode(event.target.value)
+                            }
+                            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-right outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                        />
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="rounded-lg bg-orange-600 px-6 py-3 font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            بحث
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={handleShowAll}
+                            disabled={loading}
+                            className="rounded-lg border border-gray-300 px-6 py-3 text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            عرض الكل
+                        </button>
+                    </form>
+
+                    {/* Loading */}
                     {loading && (
                         <p className="mt-6 text-gray-600">
                             جاري تحميل المستخدمين...
                         </p>
                     )}
 
-                    {error && (
+                    {/* Error */}
+                    {!loading && error && (
                         <div className="mt-6 rounded-lg bg-red-50 p-4 text-red-600">
                             <p>{error}</p>
 
                             <button
                                 type="button"
-                                onClick={() => navigate(0)}
+                                onClick={handleRetry}
                                 className="mt-2 underline"
                             >
                                 إعادة المحاولة
@@ -82,19 +166,34 @@ function ShowAllUser() {
                         </div>
                     )}
 
+                    {/* Table is replaced with the response from the server */}
                     {!loading && !error && (
                         <>
                             <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200">
                                 <table className="w-full min-w-225 border-collapse text-right">
                                     <thead>
                                         <tr className="bg-orange-600 text-white">
-                                            <th className="p-3 text-center">الكود</th>
-                                            <th className="p-3 text-center">اسم المستخدم</th>
-                                            <th className="p-3 text-center">الصلاحيات</th>
-                                            <th className="p-3 text-center">تاريخ الإنشاء</th>
-                                            <th className="p-3 text-center">أنشئ بواسطة</th>
-                                            <th className="p-3 text-center">آخر تحديث</th>
-                                            <th className="p-3 text-center">النوع</th>
+                                            <th className="p-3 text-center">
+                                                الكود
+                                            </th>
+                                            <th className="p-3 text-center">
+                                                اسم المستخدم
+                                            </th>
+                                            <th className="p-3 text-center">
+                                                الصلاحيات
+                                            </th>
+                                            <th className="p-3 text-center">
+                                                تاريخ الإنشاء
+                                            </th>
+                                            <th className="p-3 text-center">
+                                                أنشئ بواسطة
+                                            </th>
+                                            <th className="p-3 text-center">
+                                                آخر تحديث
+                                            </th>
+                                            <th className="p-3 text-center">
+                                                النوع
+                                            </th>
                                         </tr>
                                     </thead>
 
@@ -116,14 +215,16 @@ function ShowAllUser() {
                                                     <td className="p-3 text-center">
                                                         {item.auths?.length > 0 ? (
                                                             <div className="flex flex-wrap justify-center gap-2">
-                                                                {item.auths.map((auth) => (
-                                                                    <span
-                                                                        key={auth.id}
-                                                                        className="rounded-full bg-orange-100 px-3 py-1 text-sm text-orange-700"
-                                                                    >
-                                                                        {auth.authName}
-                                                                    </span>
-                                                                ))}
+                                                                {item.auths.map(
+                                                                    (auth) => (
+                                                                        <span
+                                                                            key={auth.id}
+                                                                            className="rounded-full bg-orange-100 px-3 py-1 text-sm text-orange-700"
+                                                                        >
+                                                                            {auth.authName}
+                                                                        </span>
+                                                                    )
+                                                                )}
                                                             </div>
                                                         ) : (
                                                             <span className="text-gray-400">
@@ -167,7 +268,9 @@ function ShowAllUser() {
                                                     colSpan={7}
                                                     className="p-6 text-gray-500"
                                                 >
-                                                    لا يوجد مستخدمون لعرضهم
+                                                    {submittedCode
+                                                        ? "لا يوجد مستخدم بهذا الكود"
+                                                        : "لا يوجد مستخدمون لعرضهم"}
                                                 </td>
                                             </tr>
                                         )}
@@ -176,7 +279,9 @@ function ShowAllUser() {
                             </div>
 
                             <p className="mt-4 text-right text-sm text-gray-500">
-                                إجمالي المستخدمين: {users.length}
+                                {submittedCode
+                                    ? `نتائج البحث: ${users.length} مستخدم`
+                                    : `إجمالي المستخدمين: ${users.length}`}
                             </p>
                         </>
                     )}
