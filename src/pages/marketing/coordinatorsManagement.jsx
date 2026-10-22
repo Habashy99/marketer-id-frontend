@@ -331,7 +331,7 @@ function CoordinatorsManagement() {
                             جاري تحميل البيانات...
                         </p>
                     ) : !error ? (
-                        <table className="w-full min-w-[1200px] text-right">
+                        <table className="w-full min-w-300 text-right">
                             <thead className="bg-orange-600 text-white">
                                 <tr>
                                     <th className="p-3">الكود</th>
@@ -376,7 +376,7 @@ function CoordinatorsManagement() {
                                                 )}
                                             </td>
 
-                                            <td className="min-w-[240px] p-3">
+                                            <td className="min-w-60 p-3">
                                                 {item.exceptions.length ? (
                                                     <div className="space-y-2">
                                                         {item.exceptions.map((exception) => (

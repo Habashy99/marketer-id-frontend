@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { sendHttpReq } from "../lib/httpHandler";
 import { useAuth } from "../context/authContext";
@@ -16,10 +15,7 @@ function Header({ user: showLogoutButton }) {
                 throw new Error(data.message || "Failed to log out");
             }
 
-            // Clear the user from AuthContext
             logoutUser();
-
-            // Navigate to home and replace the current history entry
             navigate("/", { replace: true });
         } catch (error) {
             console.error("Logout error:", error);
@@ -28,7 +24,10 @@ function Header({ user: showLogoutButton }) {
     };
 
     return (
-        <header className="grid w-full grid-cols-3 items-center bg-white px-3 py-4 sm:px-6">
+        <header
+            dir="ltr"
+            className="grid w-full grid-cols-3 items-center bg-white px-3 py-4 sm:px-6"
+        >
             <div className="justify-self-start">
                 {showLogoutButton && (
                     <button
@@ -41,7 +40,10 @@ function Header({ user: showLogoutButton }) {
                 )}
             </div>
 
-            <h1 className="justify-self-center whitespace-nowrap text-lg font-bold text-orange-600 sm:text-3xl">
+            <h1
+                dir="rtl"
+                className="justify-self-center whitespace-nowrap text-lg font-bold text-orange-600 sm:text-3xl"
+            >
                 معرِّف المسوِّق
             </h1>
 

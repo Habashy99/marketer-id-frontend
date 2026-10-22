@@ -2,10 +2,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/authContext";
 
-// Pages
-import Home from "./pages/Home.jsx";
-import Login from "./pages/Login.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
+
+import Home from "./pages/home.jsx";
+import Login from "./pages/login.jsx";
+import Dashboard from "./pages/dashboard.jsx";
 import MarketingHome from "./pages/marketing/marketingHome.jsx";
 import UsersManagement from "./pages/marketing/usersManagement.jsx";
 import CoordinatorsManagement from "./pages/marketing/coordinatorsManagement.jsx";

@@ -14,7 +14,6 @@ function Login() {
     const navigate = useNavigate();
     const { user, loginUser } = useAuth();
 
-    // If already logged in, return to Home.
     if (user) {
         navigate("/", { replace: true });
     }
@@ -43,7 +42,6 @@ function Login() {
 
             loginUser(data.user);
 
-            // After login, go to Home to choose a system.
             navigate("/", { replace: true });
         } catch (err) {
             setError(err.message || "حدث خطأ أثناء تسجيل الدخول");
@@ -58,7 +56,7 @@ function Login() {
                 <Header user={null} />
             </div>
 
-            <main className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-slate-100 p-6">
+            <main className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-slate-100 p-6 bg-[url('/images/gomla_market_company_cover.jpg')]">
                 <form
                     onSubmit={handleLogin}
                     className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl"

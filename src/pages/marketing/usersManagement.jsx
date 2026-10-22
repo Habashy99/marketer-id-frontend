@@ -153,7 +153,7 @@ function UsersManagement() {
                             جاري تحميل المستخدمين...
                         </p>
                     ) : (
-                        <table className="w-full min-w-[800px] text-right">
+                        <table className="w-full min-w-200 text-right">
                             <thead className="bg-orange-50">
                                 <tr>
                                     <th className="p-4">الكود</th>
