@@ -108,7 +108,7 @@ function Dashboard() {
                     onClick={() => navigate("/givePermission")}
                     className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
                 >
-                    منح الإذن للمستخدم
+                    منح/حذف الإذن للمستخدم
                 </button>
 
                 <button
@@ -122,7 +122,7 @@ function Dashboard() {
                     onClick={() => navigate("/createNewCoordinator")}
                     className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
                 >
-                    منح استثناء
+                    منح/حذف استثناء
                 </button>
 
                 <button
