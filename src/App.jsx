@@ -5,6 +5,9 @@ import CreateNewUser from "./pages/createNewUsers";
 import CreateNewCoordinator from "./pages/createNewCoordinators";
 import ShowAllUser from "./pages/showAllUser";
 import GivePermission from "./pages/givePermission";
+import DeletePermission from "./pages/deletePermission";
+import CreateNewException from "./pages/createNewException";
+import DeleteException from "./pages/deleteException";
 import ShowAllCoordinators from "./pages/showAllCoordinators";
 import Dashboard from "./pages/dashboard";
 import Home from "./pages/home";
@@ -22,6 +25,9 @@ function App() {
                     <Route path="/showAllCoordinators" element={<ShowAllCoordinators />} />
                     <Route path="/showAllUser" element={<ShowAllUser />} />
                     <Route path="/givePermission" element={<GivePermission />} />
+                    <Route path="/deletePermission" element={<DeletePermission />} />
+                    <Route path="/createNewException" element={<CreateNewException />} />
+                    <Route path="/deleteException" element={<DeleteException />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>
