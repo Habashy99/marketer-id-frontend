@@ -96,7 +96,7 @@ function Dashboard() {
             </div>
 
 
-            <div className="flex flex-row-reverse flex-nowrap justify-start gap-3 overflow-x-auto p-6">
+            <div className="flex flex-row-reverse flex-wrap justify-start gap-3 p-6">
                 <button
                     onClick={() => navigate("/createNewUser")}
                     className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
@@ -108,7 +108,14 @@ function Dashboard() {
                     onClick={() => navigate("/givePermission")}
                     className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
                 >
-                    منح/حذف الإذن للمستخدم
+                    منح الإذن للمستخدم
+                </button>
+
+                <button
+                    onClick={() => navigate("/deletePermission")}
+                    className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
+                >
+                    حذف الإذن للمستخدم
                 </button>
 
                 <button
@@ -119,10 +126,17 @@ function Dashboard() {
                 </button>
 
                 <button
-                    onClick={() => navigate("/createNewCoordinator")}
+                    onClick={() => navigate("/createNewException")}
                     className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
                 >
-                    منح/حذف استثناء
+                    منح استثناء
+                </button>
+
+                <button
+                    onClick={() => navigate("/deleteException")}
+                    className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
+                >
+                    حذف استثناء
                 </button>
 
                 <button
