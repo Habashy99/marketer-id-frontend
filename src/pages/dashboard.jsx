@@ -105,13 +105,6 @@ function Dashboard() {
                 </button>
 
                 <button
-                    onClick={() => navigate("/showAllUser")}
-                    className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
-                >
-                    عرض جميع المستخدمين
-                </button>
-
-                <button
                     onClick={() => navigate("/givePermission")}
                     className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
                 >
@@ -119,10 +112,31 @@ function Dashboard() {
                 </button>
 
                 <button
+                    onClick={() => navigate("/createNewCoordinator")}
+                    className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
+                >
+                    إنشاء مندوب/منسق جديد
+                </button>
+
+                <button
+                    onClick={() => navigate("/createNewCoordinator")}
+                    className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
+                >
+                    منح استثناء
+                </button>
+
+                <button
+                    onClick={() => navigate("/showAllUser")}
+                    className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
+                >
+                    عرض جميع المستخدمين
+                </button>
+
+                <button
                     onClick={() => navigate("/showAllCoordinators")}
                     className="shrink-0 rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
                 >
-                    عرض جميع المنسقين
+                    عرض جميع المناديب/المنسقين
                 </button>
             </div>
 
