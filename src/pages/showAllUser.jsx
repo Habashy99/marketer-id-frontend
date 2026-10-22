@@ -85,16 +85,16 @@ function ShowAllUser() {
                     {!loading && !error && (
                         <>
                             <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200">
-                                <table className="w-full min-w-[900px] border-collapse text-right">
+                                <table className="w-full min-w-225 border-collapse text-right">
                                     <thead>
                                         <tr className="bg-orange-600 text-white">
-                                            <th className="p-3">الكود</th>
-                                            <th className="p-3">اسم المستخدم</th>
-                                            <th className="p-3">الصلاحيات</th>
-                                            <th className="p-3">تاريخ الإنشاء</th>
-                                            <th className="p-3">أنشئ بواسطة</th>
-                                            <th className="p-3">آخر تحديث</th>
-                                            <th className="p-3">النوع</th>
+                                            <th className="p-3 text-center">الكود</th>
+                                            <th className="p-3 text-center">اسم المستخدم</th>
+                                            <th className="p-3 text-center">الصلاحيات</th>
+                                            <th className="p-3 text-center">تاريخ الإنشاء</th>
+                                            <th className="p-3 text-center">أنشئ بواسطة</th>
+                                            <th className="p-3 text-center">آخر تحديث</th>
+                                            <th className="p-3 text-center">النوع</th>
                                         </tr>
                                     </thead>
 
@@ -105,19 +105,22 @@ function ShowAllUser() {
                                                     key={item.id}
                                                     className="border-b border-gray-200 transition-colors hover:bg-orange-50"
                                                 >
-                                                    <td className="p-3">
+                                                    <td className="p-3 text-center">
                                                         {item.code}
                                                     </td>
 
-                                                    <td className="p-3">
+                                                    <td className="p-3 text-center">
                                                         {item.name}
                                                     </td>
 
-                                                    <td className="p-3">
+                                                    <td className="p-3 text-center">
                                                         {item.auths?.length > 0 ? (
                                                             <div className="flex flex-wrap justify-center gap-2">
                                                                 {item.auths.map((auth) => (
-                                                                    <span key={auth.id}>
+                                                                    <span
+                                                                        key={auth.id}
+                                                                        className="rounded-full bg-orange-100 px-3 py-1 text-sm text-orange-700"
+                                                                    >
                                                                         {auth.authName}
                                                                     </span>
                                                                 ))}
@@ -129,7 +132,7 @@ function ShowAllUser() {
                                                         )}
                                                     </td>
 
-                                                    <td className="p-3">
+                                                    <td className="p-3 text-center">
                                                         {item.createdAt
                                                             ? new Date(
                                                                 item.createdAt
@@ -139,11 +142,11 @@ function ShowAllUser() {
                                                             : "-"}
                                                     </td>
 
-                                                    <td className="p-3">
+                                                    <td className="p-3 text-center">
                                                         {item.createdBy ?? "-"}
                                                     </td>
 
-                                                    <td className="p-3">
+                                                    <td className="p-3 text-center">
                                                         {item.updatedAt
                                                             ? new Date(
                                                                 item.updatedAt
@@ -153,7 +156,7 @@ function ShowAllUser() {
                                                             : "-"}
                                                     </td>
 
-                                                    <td className="p-3">
+                                                    <td className="p-3 text-center">
                                                         {item.type ?? "-"}
                                                     </td>
                                                 </tr>
