@@ -1,27 +1,38 @@
+
 import { useNavigate } from "react-router-dom";
 import { sendHttpReq } from "../lib/httpHandler";
+import { useAuth } from "../context/authContext";
 
-function Header({ user }) {
+function Header({ user: showLogoutButton }) {
     const navigate = useNavigate();
+    const { logoutUser } = useAuth();
 
     const logout = async () => {
         try {
             const response = await sendHttpReq("users/logout", "POST");
+            const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error("Failed to log out");
+                throw new Error(data.message || "Failed to log out");
             }
 
+            // Clear the user from AuthContext
+            logoutUser();
+
+            // Navigate to home and replace the current history entry
             navigate("/", { replace: true });
         } catch (error) {
             console.error("Logout error:", error);
+            alert(error.message || "Logout failed");
         }
     };
+
     return (
         <header className="grid w-full grid-cols-3 items-center bg-white px-3 py-4 sm:px-6">
             <div className="justify-self-start">
-                {user && (
+                {showLogoutButton && (
                     <button
+                        type="button"
                         onClick={logout}
                         className="rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
                     >

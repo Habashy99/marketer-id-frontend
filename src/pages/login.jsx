@@ -1,92 +1,136 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "./../helpers/header";
-import { sendHttpReq } from "../lib/httpHandler";
+import Header from "../helpers/header";
 import { useAuth } from "../context/authContext";
+import { sendHttpReq } from "../lib/httpHandler";
 
 function Login() {
     const [code, setCode] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
-    const navigate = useNavigate();
-    const { loginUser } = useAuth();
+    const [loading, setLoading] = useState(false);
 
-    const login = async (event) => {
-        event.preventDefault();
+    const navigate = useNavigate();
+    const { user, loginUser } = useAuth();
+
+    // If already logged in, return to Home.
+    if (user) {
+        navigate("/", { replace: true });
+    }
+
+    const handleLogin = async (e) => {
+        e.preventDefault();
+
         setError("");
+        setLoading(true);
 
         try {
             const response = await sendHttpReq("users/login", "POST", {
-                code,
+                code: code.trim(),
                 password,
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || "Login failed");
+                throw new Error(data.message || "فشل تسجيل الدخول");
             }
-            
-            navigate("/dashboard", { replace: true });
-            console.log("Login successful:", data);
+
+            if (!data.user) {
+                throw new Error("لم يتم العثور على بيانات المستخدم");
+            }
+
             loginUser(data.user);
-        } catch (error) {
-            setError(error.message || "Something went wrong");
+
+            // After login, go to Home to choose a system.
+            navigate("/", { replace: true });
+        } catch (err) {
+            setError(err.message || "حدث خطأ أثناء تسجيل الدخول");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <>
+        <div className="min-h-screen">
             <div className="sticky top-0 z-50">
                 <Header user={null} />
             </div>
 
-            <div className="flex min-h-screen items-center justify-center bg-slate-100 bg-[url('/images/gomla_market_company_cover.jpg')] bg-cover bg-center p-8">
-                <div className="w-full max-w-md rounded-xl bg-white p-8 text-center shadow-lg">
-                    <h2 className="text-3xl font-bold text-orange-600">
-                        Login
-                    </h2>
+            <main className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-slate-100 p-6">
+                <form
+                    onSubmit={handleLogin}
+                    className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl"
+                >
+                    <h1 className="text-center text-3xl font-bold text-orange-600">
+                        تسجيل الدخول
+                    </h1>
 
-                    <p className="mt-3 text-gray-600">
-                        Welcome back! Please sign in.
-                    </p>
-
-                    <form onSubmit={login} className="mt-6 space-y-4">
-                        <input
-                            type="text"
-                            name="code"
-                            placeholder="User code"
-                            value={code}
-                            onChange={(event) => setCode(event.target.value)}
-                            required
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-orange-600"
-                        />
-
-                        <input
-                            type="password"
-                            name="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
-                            required
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-orange-600"
-                        />
-
-                        {error && (
-                            <p className="text-sm text-red-600">{error}</p>
-                        )}
-
-                        <button
-                            type="submit"
-                            className="w-full rounded-lg bg-orange-600 px-5 py-3 text-white hover:bg-orange-700"
+                    <div className="mt-8">
+                        <label
+                            htmlFor="code"
+                            className="mb-2 block font-medium text-gray-700"
                         >
-                            Login
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </>
+                            كود المستخدم
+                        </label>
+
+                        <input
+                            id="code"
+                            type="text"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            required
+                            autoComplete="username"
+                            className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-orange-500"
+                            placeholder="أدخل كود المستخدم"
+                        />
+                    </div>
+
+                    <div className="mt-5">
+                        <label
+                            htmlFor="password"
+                            className="mb-2 block font-medium text-gray-700"
+                        >
+                            كلمة المرور
+                        </label>
+
+                        <input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            autoComplete="current-password"
+                            className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-orange-500"
+                            placeholder="أدخل كلمة المرور"
+                        />
+                    </div>
+
+                    {error && (
+                        <p className="mt-4 text-center text-sm text-red-600">
+                            {error}
+                        </p>
+                    )}
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="mt-6 w-full rounded-lg bg-orange-600 px-5 py-3 font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {loading ? "جاري تسجيل الدخول..." : "دخول"}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => navigate("/", { replace: true })}
+                        className="mt-4 w-full rounded-lg border border-gray-300 px-5 py-3 text-gray-700 hover:bg-gray-50"
+                    >
+                        العودة للرئيسية
+                    </button>
+                </form>
+            </main>
+        </div>
     );
 }
 

@@ -1,16 +1,19 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/authContext";
-import Login from "./pages/login";
-import CreateNewUser from "./pages/createNewUsers";
-import CreateNewCoordinator from "./pages/createNewCoordinators";
-import ShowAllUser from "./pages/showAllUser";
-import GivePermission from "./pages/givePermission";
-import DeletePermission from "./pages/deletePermission";
-import CreateNewException from "./pages/createNewException";
-import DeleteException from "./pages/deleteException";
-import ShowAllCoordinators from "./pages/showAllCoordinators";
-import Dashboard from "./pages/dashboard";
-import Home from "./pages/home";
+
+// Pages
+import Home from "./pages/Home.jsx";
+import Login from "./pages/Login.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import MarketingHome from "./pages/marketing/marketingHome.jsx";
+import UsersManagement from "./pages/marketing/usersManagement.jsx";
+import CoordinatorsManagement from "./pages/marketing/coordinatorsManagement.jsx";
+import PricingHome from "./pages/pricing/pricingHome.jsx";
+
+
+
+
 
 function App() {
     return (
@@ -20,14 +23,21 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/createNewUser" element={<CreateNewUser />} />
-                    <Route path="/createNewCoordinator" element={<CreateNewCoordinator />} />
-                    <Route path="/showAllCoordinators" element={<ShowAllCoordinators />} />
-                    <Route path="/showAllUser" element={<ShowAllUser />} />
-                    <Route path="/givePermission" element={<GivePermission />} />
-                    <Route path="/deletePermission" element={<DeletePermission />} />
-                    <Route path="/createNewException" element={<CreateNewException />} />
-                    <Route path="/deleteException" element={<DeleteException />} />
+
+                    <Route path="/marketing" element={<MarketingHome />} />
+                    <Route
+                        path="/marketing/users"
+                        element={<UsersManagement />}
+                    />
+                    <Route
+                        path="/marketing/coordinators"
+                        element={<CoordinatorsManagement />}
+                    />
+
+                    <Route path="/pricing" element={<PricingHome />} />
+
+
+
                 </Routes>
             </BrowserRouter>
         </AuthProvider>
