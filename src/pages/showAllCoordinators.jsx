@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../helpers/header";
@@ -20,6 +21,9 @@ function ShowAllCoordinators() {
     const [coordinators, setCoordinators] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [searchCode, setSearchCode] = useState("");
+    const [submittedCode, setSubmittedCode] = useState("");
+    const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
         if (!user) {
@@ -27,20 +31,29 @@ function ShowAllCoordinators() {
             return;
         }
 
+        let cancelled = false;
+
         const fetchCoordinators = async () => {
             setLoading(true);
             setError("");
 
             try {
-                let url = "coordinators";
+                const params = new URLSearchParams();
+
+                if (submittedCode.trim()) {
+                    params.set("code", submittedCode.trim());
+                }
 
                 if (selectedJob === "منتهي") {
-                    url = "coordinators?filter=expired";
+                    params.set("filter", "expired");
                 } else if (selectedJob) {
-                    url = `coordinators?job=${encodeURIComponent(
-                        selectedJob
-                    )}`;
+                    params.set("job", selectedJob);
                 }
+
+                const query = params.toString();
+                const url = query
+                    ? `coordinators?${query}`
+                    : "coordinators";
 
                 const response = await sendHttpReq(url);
                 const data = await response.json();
@@ -51,43 +64,110 @@ function ShowAllCoordinators() {
                     );
                 }
 
-                const grouped = new Map();
+                if (!cancelled) {
+                    const grouped = new Map();
 
-                for (const item of data.coordinators || []) {
-                    if (!grouped.has(item.id)) {
-                        grouped.set(item.id, {
-                            ...item,
-                            exceptions: [],
-                        });
-                    }
+                    for (const item of data.coordinators || []) {
+                        if (!grouped.has(item.id)) {
+                            grouped.set(item.id, {
+                                ...item,
+                                exceptions: [],
+                            });
+                        }
 
-                    if (item.exception_id != null) {
-                        grouped.get(item.id).exceptions.push({
-                            id: item.exception_id,
-                            name: item.exception_name,
-                            startDate: item.exception_start_date,
-                            endDate: item.exception_end_date,
-                        });
+                        if (item.exception_id != null) {
+                            grouped.get(item.id).exceptions.push({
+                                id: item.exception_id,
+                                name: item.exception_name,
+                                startDate: item.exception_start_date,
+                                endDate: item.exception_end_date,
+                            });
+                        }
                     }
+                    setCoordinators(
+                        Array.from(grouped.values())
+                    );
                 }
-
-                setCoordinators(Array.from(grouped.values()));
             } catch (err) {
-                setError(err.message || "حدث خطأ أثناء تحميل البيانات");
+                if (!cancelled) {
+                    setCoordinators([]);
+                    setError(
+                        err.message ||
+                        "حدث خطأ أثناء تحميل البيانات"
+                    );
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchCoordinators();
-    }, [user, navigate, selectedJob]);
 
-    if (!user) return null;
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        user,
+        navigate,
+        selectedJob,
+        submittedCode,
+        refreshKey,
+    ]);
+
+    if (!user) {
+        return null;
+    }
+
+    const handleSearch = (event) => {
+        event.preventDefault();
+
+        const code = searchCode.trim();
+
+        if (!code) {
+            setError("من فضلك أدخل كود المنسق أو المندوب");
+            return;
+        }
+
+        if (!/^\d+$/.test(code)) {
+            setError("كود المنسق يجب أن يتكون من أرقام فقط");
+            return;
+        }
+
+        setError("");
+        setSubmittedCode(code);
+        setRefreshKey((current) => current + 1);
+    };
+
+    const handleShowAll = () => {
+        setSearchCode("");
+        setSubmittedCode("");
+        setSelectedJob("");
+        setError("");
+        setRefreshKey((current) => current + 1);
+    };
+
+    const handleRetry = () => {
+        setRefreshKey((current) => current + 1);
+    };
 
     const formatDate = (date) => {
         if (!date) return "-";
 
         return new Date(date).toLocaleDateString("en-GB");
+    };
+
+    const isExpired = (date) => {
+        if (!date) return false;
+
+        const expiryDate = new Date(date);
+        const today = new Date();
+
+        expiryDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        return expiryDate < today;
     };
 
     return (
@@ -106,13 +186,50 @@ function ShowAllCoordinators() {
                         عرض بيانات المنسقين والمناديب والاستثناءات الخاصة بهم
                     </p>
 
+                    {/* Search by coordinator code */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="mt-6 flex flex-col gap-3 sm:flex-row"
+                    >
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            name="searchCode"
+                            placeholder="ابحث بكود المنسق أو المندوب..."
+                            value={searchCode}
+                            onChange={(event) =>
+                                setSearchCode(event.target.value)
+                            }
+                            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-right outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                        />
 
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="rounded-lg bg-orange-600 px-6 py-3 font-semibold text-white transition hover:bg-orange-700 disabled:cursor-wait disabled:opacity-60"
+                        >
+                            بحث
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={handleShowAll}
+                            disabled={loading}
+                            className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100 disabled:cursor-wait disabled:opacity-60"
+                        >
+                            عرض الكل
+                        </button>
+                    </form>
+
+                    {/* Job filters */}
                     <div className="mt-6 flex flex-wrap justify-center gap-3">
                         {filters.map((filter) => (
                             <button
                                 key={filter.value}
                                 type="button"
-                                onClick={() => setSelectedJob(filter.value)}
+                                onClick={() =>
+                                    setSelectedJob(filter.value)
+                                }
                                 disabled={loading}
                                 className={`rounded-lg px-5 py-3 font-semibold transition-colors disabled:cursor-wait disabled:opacity-60 ${selectedJob === filter.value
                                     ? "bg-orange-600 text-white"
@@ -136,22 +253,28 @@ function ShowAllCoordinators() {
                         </button>
                     </div>
 
+                    {/* Active search information */}
+                    {submittedCode && (
+                        <p className="mt-4 text-right text-sm text-gray-600">
+                            البحث بكود: {submittedCode}
+                        </p>
+                    )}
+
+                    {/* Loading */}
                     {loading && (
                         <p className="mt-6 text-gray-600">
                             جاري تحميل البيانات...
                         </p>
                     )}
 
-                    {error && (
+                    {/* Error */}
+                    {!loading && error && (
                         <div className="mt-6 rounded-lg bg-red-50 p-4 text-red-600">
                             <p>{error}</p>
 
                             <button
                                 type="button"
-                                onClick={() => setSelectedJob((current) => {
-                                    setError("");
-                                    return current === "__retry__" ? "" : current;
-                                })}
+                                onClick={handleRetry}
                                 className="mt-2 underline"
                             >
                                 إعادة المحاولة
@@ -159,6 +282,7 @@ function ShowAllCoordinators() {
                         </div>
                     )}
 
+                    {/* Coordinators table */}
                     {!loading && !error && (
                         <>
                             <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200">
@@ -172,7 +296,9 @@ function ShowAllCoordinators() {
                                             <th className="p-3">رقم الهاتف</th>
                                             <th className="p-3">المحافظة</th>
                                             <th className="p-3">حالة المستخدم</th>
-                                            <th className="p-3">انتهاء الشهادة الصحية</th>
+                                            <th className="p-3">
+                                                انتهاء الشهادة الصحية
+                                            </th>
                                             <th className="p-3">الاستثناءات</th>
                                         </tr>
                                     </thead>
@@ -224,14 +350,16 @@ function ShowAllCoordinators() {
                                                         </td>
 
                                                         <td
-                                                            className={`p-3 font-semibold ${item.health_certificate_expiry_date &&
-                                                                    new Date(item.health_certificate_expiry_date).setHours(0, 0, 0, 0) <
-                                                                    new Date().setHours(0, 0, 0, 0)
-                                                                    ? "text-red-600"
-                                                                    : "text-gray-700"
+                                                            className={`p-3 font-semibold ${isExpired(
+                                                                item.health_certificate_expiry_date
+                                                            )
+                                                                ? "text-red-600"
+                                                                : "text-gray-700"
                                                                 }`}
                                                         >
-                                                            {formatDate(item.health_certificate_expiry_date)}
+                                                            {formatDate(
+                                                                item.health_certificate_expiry_date
+                                                            )}
                                                         </td>
 
                                                         <td className="p-3">
@@ -249,9 +377,13 @@ function ShowAllCoordinators() {
 
                                                                                 <p className="text-gray-600">
                                                                                     من{" "}
-                                                                                    {formatDate(exception.startDate)}
-                                                                                    {" "}إلى{" "}
-                                                                                    {formatDate(exception.endDate)}
+                                                                                    {formatDate(
+                                                                                        exception.startDate
+                                                                                    )}{" "}
+                                                                                    إلى{" "}
+                                                                                    {formatDate(
+                                                                                        exception.endDate
+                                                                                    )}
                                                                                 </p>
                                                                             </div>
                                                                         )
@@ -272,7 +404,9 @@ function ShowAllCoordinators() {
                                                     colSpan={9}
                                                     className="p-6 text-gray-500"
                                                 >
-                                                    لا توجد بيانات لعرضها
+                                                    {submittedCode
+                                                        ? "لا يوجد منسق أو مندوب بهذا الكود"
+                                                        : "لا توجد بيانات لعرضها"}
                                                 </td>
                                             </tr>
                                         )}
