@@ -45,7 +45,7 @@ function Home() {
                                 {/* User Management */}
                                 <button
                                     type="button"
-                                    onClick={() => navigate("/marketing/users")}
+                                    onClick={() => navigate("/users")}
                                     className="rounded-xl bg-orange-600 p-6 text-white shadow transition hover:-translate-y-1 hover:bg-orange-700 hover:shadow-lg"
                                 >
                                     <span className="text-xl font-bold">
