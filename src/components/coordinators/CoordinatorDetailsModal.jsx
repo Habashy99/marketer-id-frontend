@@ -267,7 +267,7 @@ export default function CoordinatorDetailsModal({
                     className="min-w-0 rounded-lg border border-gray-200 p-3"
                 >
                     <p className="mb-1 text-sm text-gray-500">{label}</p>
-                    <p className="break-words font-medium">
+                    <p className="wrap-break-words font-medium">
                         {value === ""
                             ? "—"
                             : DATE_FIELDS.has(key)
@@ -444,7 +444,7 @@ export default function CoordinatorDetailsModal({
                             <p className="mb-1 text-sm text-gray-500">
                                 أنشأ بواسطة
                             </p>
-                            <p className="break-words font-medium">
+                            <p className="wrap-break-word font-medium">
                                 {coordinator.created_by ?? "—"}
                             </p>
                         </div>
