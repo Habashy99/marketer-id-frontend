@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Header from "../../components/header";
 import { sendHttpReq } from "../../lib/httpHandler";
-
+import { useNavigate } from "react-router-dom";
 import CoordinatorsToolbar from "../../components/coordinators/CoordinatorsToolbar";
 import CoordinatorsTable from "../../components/coordinators/CoordinatorsTable";
 import CoordinatorDetailsModal from "../../components/coordinators/CoordinatorDetailsModal";
@@ -30,7 +30,7 @@ export default function CoordinatorsManagement() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
-
+    const navigate = useNavigate();
     const [search, setSearch] = useState("");
     const [job, setJob] = useState("");
     const [filter, setFilter] = useState("");
@@ -249,20 +249,32 @@ export default function CoordinatorsManagement() {
             <Header />
 
             <main className="mx-auto max-w-[1800px] p-4 sm:p-6">
+
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                     <h1 className="text-2xl font-bold text-orange-700">
                         إدارة المنسقين والمندوبين
                     </h1>
 
-                    <button
-                        type="button"
-                        onClick={loadCoordinators}
-                        disabled={loading}
-                        className="rounded-lg border border-orange-600 px-4 py-2 text-orange-700 hover:bg-orange-50 disabled:opacity-50"
-                    >
-                        {loading ? "جاري التحديث..." : "تحديث البيانات"}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => navigate("/marketing")}
+                            className="rounded-lg border border-gray-300 bg-white px-4 py-2 hover:bg-gray-100"
+                        >
+                            العودة لنظام التسويق
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={loadCoordinators}
+                            disabled={loading}
+                            className="rounded-lg border border-orange-600 px-4 py-2 text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+                        >
+                            {loading ? "جاري التحديث..." : "تحديث البيانات"}
+                        </button>
+                    </div>
                 </div>
+
 
                 {error && (
                     <div
