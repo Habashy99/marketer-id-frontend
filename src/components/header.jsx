@@ -2,9 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { sendHttpReq } from "../lib/httpHandler";
 import { useAuth } from "../context/authContext";
 
-function Header({ user: showLogoutButton }) {
+function Header() {
     const navigate = useNavigate();
-    const { logoutUser } = useAuth();
+    const { user, logoutUser } = useAuth();
 
     const logout = async () => {
         try {
@@ -29,7 +29,7 @@ function Header({ user: showLogoutButton }) {
             className="grid w-full grid-cols-3 items-center bg-white px-3 py-4 sm:px-6"
         >
             <div className="justify-self-start">
-                {showLogoutButton && (
+                {user && (
                     <button
                         type="button"
                         onClick={logout}
