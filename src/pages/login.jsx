@@ -1,9 +1,9 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../helpers/header";
+import Header from "../components/header";
 import { useAuth } from "../context/authContext";
-import { sendHttpReq } from "../lib/httpHandler";
+import { sendHttpReq } from "../lib//httpHandler";
 
 function Login() {
     const [code, setCode] = useState("");

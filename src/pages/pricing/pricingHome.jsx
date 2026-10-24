@@ -1,6 +1,6 @@
 
 import { useNavigate } from "react-router-dom";
-import Header from "../../helpers/header";
+import Header from "../../components/header";
 
 function PricingHome() {
     const navigate = useNavigate();
