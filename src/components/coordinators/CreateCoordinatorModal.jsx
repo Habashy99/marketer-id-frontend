@@ -48,9 +48,27 @@ export default function CreateCoordinatorModal({
     const [error, setError] = useState("");
 
     if (!open) return null;
-
+    
     function updateField(key, value) {
-        setForm((previous) => ({ ...previous, [key]: value }));
+        setForm((previous) => {
+            const updatedForm = {
+                ...previous,
+                [key]: value,
+            };
+
+            if (key === "health_certificate_issuance_date" && value) {
+                const date = new Date(`${value}T12:00:00`);
+                date.setFullYear(date.getFullYear() + 1);
+
+                updatedForm.health_certificate_expiry_date = [
+                    date.getFullYear(),
+                    String(date.getMonth() + 1).padStart(2, "0"),
+                    String(date.getDate()).padStart(2, "0"),
+                ].join("-");
+            }
+
+            return updatedForm;
+        });
     }
 
     async function handleSubmit(event) {
