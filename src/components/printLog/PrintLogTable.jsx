@@ -17,7 +17,7 @@ export default function PrintLogTable({
     return (
         <section className="overflow-hidden rounded-xl bg-white shadow-sm">
             <div className="overflow-x-auto">
-                <table className="w-full min-w-[850px] border-collapse text-right">
+                <table className="w-full min-w-212.5 border-collapse text-right">
                     <thead className="bg-orange-50">
                         <tr>
                             {[
