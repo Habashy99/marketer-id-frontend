@@ -6,7 +6,7 @@ import { AuthProvider } from "./context/authContext";
 import Home from "./pages/home.jsx";
 import Login from "./pages/login.jsx";
 import MarketingHome from "./pages/marketing/marketingHome.jsx";
-import UsersManagement from "./pages/marketing/usersManagement.jsx";
+import UsersManagement from "./pages/users/usersManagement.jsx";
 import CoordinatorsManagement from "./pages/marketing/coordinatorsManagement.jsx";
 import PricingHome from "./pages/pricing/pricingHome.jsx";
 
@@ -23,7 +23,7 @@ function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/marketing" element={<MarketingHome />} />
                     <Route
-                        path="/marketing/users"
+                        path="/users"
                         element={<UsersManagement />}
                     />
                     <Route
