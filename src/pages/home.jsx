@@ -14,7 +14,7 @@ function Home() {
             </div>
 
             <main className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-slate-100 bg-[url('/images/gomla_market_company_cover.jpg')] bg-cover bg-center p-6">
-                <div className="w-full max-w-4xl rounded-2xl bg-white p-8 text-center shadow-xl sm:p-10">
+                <div className="w-full max-w-xl rounded-2xl bg-white p-8 text-center shadow-xl sm:p-10">
                     <h1 className="text-3xl font-bold text-orange-600">
                         مرحباً بك في إدارة جملة ماركت
                     </h1>
