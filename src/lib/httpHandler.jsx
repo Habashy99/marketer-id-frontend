@@ -1,12 +1,23 @@
 export function sendHttpReq(url, method = "GET", data = null) {
-    return fetch(`http://localhost:3000/${url}`, {
+    const isFormData =
+        typeof FormData !== "undefined" && data instanceof FormData;
+
+    const options = {
         method,
         credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        ...(data !== null && {
-            body: JSON.stringify(data),
-        }),
-    });
+    };
+
+    if (data !== null && data !== undefined) {
+        if (isFormData) {
+            options.body = data;
+        } else {
+            options.headers = {
+                "Content-Type": "application/json",
+            };
+
+            options.body = JSON.stringify(data);
+        }
+    }
+
+    return fetch(`http://localhost:3000/${url}`, options);
 }
