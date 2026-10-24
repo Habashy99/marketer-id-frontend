@@ -312,6 +312,7 @@ export default function CoordinatorDetailsModal({
                     <option value="">اختر الحالة</option>
                     <option value="مفعل">مفعل</option>
                     <option value="غير مفعل">غير مفعل</option>
+                    <option value="مؤقت">مؤقت</option>
                 </select>
             );
         } else if (DATE_FIELDS.has(key)) {
