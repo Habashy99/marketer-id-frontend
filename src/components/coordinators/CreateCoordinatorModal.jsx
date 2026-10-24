@@ -27,7 +27,6 @@ const FIELDS = [
     { key: "company_name", label: "الشركة" },
     { key: "mobile", label: "الهاتف" },
     { key: "national_id_number", label: "رقم البطاقة الشخصية" },
-    { key: "governorate", label: "المحافظة" },
     { key: "address", label: "العنوان" },
     { key: "supervisor_name", label: "اسم المشرف" },
     { key: "number_of_print_copies", label: "عدد نسخ الطباعة", type: "number" },
@@ -48,7 +47,7 @@ export default function CreateCoordinatorModal({
     const [error, setError] = useState("");
 
     if (!open) return null;
-    
+
     function updateField(key, value) {
         setForm((previous) => {
             const updatedForm = {
@@ -128,6 +127,24 @@ export default function CreateCoordinatorModal({
                             />
                         </div>
                     ))}
+                    <div>
+                        <label className="mb-1 block text-sm font-semibold">
+                            المحافظة
+                        </label>
+
+                        <select
+                            value={form.governorate}
+                            onChange={(event) =>
+                                updateField("governorate", event.target.value)
+                            }
+                            className="w-full rounded-lg border border-gray-300 p-2.5"
+                        >
+                            <option value="">اختر المحافظة</option>
+                            <option value="القاهرة">القاهرة</option>
+                            <option value="الإسكندرية">الإسكندرية</option>
+                            <option value="البحر الأحمر">البحر الأحمر</option>
+                        </select>
+                    </div>
 
                     <div>
                         <label className="mb-1 block text-sm font-semibold">
@@ -160,6 +177,7 @@ export default function CreateCoordinatorModal({
                         >
                             <option value="مفعل">مفعل</option>
                             <option value="غير مفعل">غير مفعل</option>
+                            <option value="مؤقت">مؤقت</option>
                         </select>
                     </div>
 
@@ -167,16 +185,16 @@ export default function CreateCoordinatorModal({
                         <label className="mb-1 block text-sm font-semibold">
                             الموقف الأمني
                         </label>
-                        <input
+                        <select
                             value={form.security_situation}
                             onChange={(event) =>
-                                updateField(
-                                    "security_situation",
-                                    event.target.value
-                                )
+                                updateField("security_situation", event.target.value)
                             }
                             className="w-full rounded-lg border border-gray-300 p-2.5"
-                        />
+                        >
+                            <option value="سليم">سليم</option>
+                            <option value="غير سليم">غير سليم</option>
+                        </select>
                     </div>
 
                     <div className="sm:col-span-2">
