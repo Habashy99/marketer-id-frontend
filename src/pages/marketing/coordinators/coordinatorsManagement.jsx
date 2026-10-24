@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import Header from "../../components/header";
-import { sendHttpReq } from "../../lib/httpHandler";
+import Header from "../../../components/header";
+import { sendHttpReq } from "../../../lib/httpHandler";
 import { useNavigate } from "react-router-dom";
-import CoordinatorsToolbar from "../../components/coordinators/CoordinatorsToolbar";
-import CoordinatorsTable from "../../components/coordinators/CoordinatorsTable";
-import CoordinatorDetailsModal from "../../components/coordinators/CoordinatorDetailsModal";
-import CreateCoordinatorModal from "../../components/coordinators/CreateCoordinatorModal";
-import CreateExceptionModal from "../../components/coordinators/CreateExceptionModal";
-import DeleteExceptionModal from "../../components/coordinators/DeleteExceptionModal";
+import CoordinatorsToolbar from "../../../components/coordinators/CoordinatorsToolbar";
+import CoordinatorsTable from "../../../components/coordinators/CoordinatorsTable";
+import CoordinatorDetailsModal from "../../../components/coordinators/CoordinatorDetailsModal";
+import CreateCoordinatorModal from "../../../components/coordinators/CreateCoordinatorModal";
+import CreateExceptionModal from "../../../components/coordinators/CreateExceptionModal";
+import DeleteExceptionModal from "../../../components/coordinators/DeleteExceptionModal";
 import {
     groupCoordinators,
     normalizeJob,
-} from "../../utils/coordinatorHelpers";
+} from "../../../utils/coordinatorHelpers";
 
 async function readResponse(response) {
     const data = await response.json().catch(() => ({}));
