@@ -121,6 +121,14 @@ function MarketingHome() {
                         اختر القسم الذي تريد العمل عليه.
                     </p>
 
+                    <button
+                        type="button"
+                        onClick={() => navigate("/")}
+                        className="mt-8 rounded-lg border border-gray-300 px-5 py-3 text-gray-700 hover:bg-gray-200"
+                    >
+                        العودة للرئيسية
+                    </button>
+
                     <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         {marketingSections.map((section) => (
                             <button
@@ -176,14 +184,6 @@ function MarketingHome() {
                             ))}
                         </div>
                     )}
-
-                    <button
-                        type="button"
-                        onClick={() => navigate("/")}
-                        className="mt-8 rounded-lg border border-gray-300 px-5 py-3 text-gray-700 hover:bg-gray-200"
-                    >
-                        العودة للرئيسية
-                    </button>
                 </div>
             </main>
         </>
