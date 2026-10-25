@@ -1,4 +1,6 @@
 
+import { useNavigate } from "react-router-dom";
+
 export default function TemplateToolbar({
     downloadJson,
     onPrint,
@@ -7,6 +9,7 @@ export default function TemplateToolbar({
     error,
     notice,
 }) {
+     const navigate = useNavigate();
     return (
         <>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 no-print">
@@ -31,9 +34,17 @@ export default function TemplateToolbar({
                     <button
                         type="button"
                         onClick={onPrint}
-                        className="rounded-lg border border-slate-300 bg-white px-4 py-2"
+                        className="rounded-lg border border-slate-300 bg-blue-600 text-white px-4 py-2"
                     >
                         معاينة الطباعة
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => navigate("/marketing")}
+                        className="rounded-lg border border-slate-300 bg-orange-600 text-white px-4 py-2"
+                    >
+                       العودة إلى التسويق
                     </button>
 
                     <button
