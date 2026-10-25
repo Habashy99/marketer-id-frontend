@@ -1,7 +1,9 @@
+
 import { useEffect, useState } from "react";
 import {
     COORDINATOR_FIELDS,
     formatDate,
+    getPhotoUrl,
 } from "../../utils/coordinatorHelpers";
 import CoordinatorPhotos from "./CoordinatorPhotos";
 
@@ -97,7 +99,6 @@ function inputValue(value, key) {
 
 function getPhotoName(value) {
     if (!value) return "لا توجد صورة مرفوعة";
-
     return String(value).split(/[\\/]/).pop();
 }
 
@@ -140,7 +141,7 @@ function PhotoInputs({ coordinator, photos, setPhotos }) {
 
                     <input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         className="hidden"
                         onChange={(event) => {
                             const file = event.target.files?.[0];
@@ -241,8 +242,10 @@ export default function CoordinatorDetailsModal({
         }
 
         for (const photo of PHOTO_FIELDS) {
-            if (photos[photo.key]) {
-                formData.append(photo.key, photos[photo.key]);
+            const file = photos[photo.key];
+
+            if (file instanceof File) {
+                formData.append(photo.key, file);
             }
         }
 
@@ -267,12 +270,12 @@ export default function CoordinatorDetailsModal({
                     className="min-w-0 rounded-lg border border-gray-200 p-3"
                 >
                     <p className="mb-1 text-sm text-gray-500">{label}</p>
-                    <p className="wrap-break-words font-medium">
+                    <p className="break-words font-medium">
                         {value === ""
                             ? "—"
                             : DATE_FIELDS.has(key)
-                                ? formatDate(value)
-                                : String(value)}
+                              ? formatDate(value)
+                              : String(value)}
                     </p>
                 </div>
             );
@@ -425,10 +428,7 @@ export default function CoordinatorDetailsModal({
                     </div>
                 </div>
 
-                <form
-                    id="edit-coordinator-form"
-                    onSubmit={handleSubmit}
-                >
+                <form id="edit-coordinator-form" onSubmit={handleSubmit}>
                     <h3 className="mb-3 font-bold">البيانات الأساسية</h3>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -445,7 +445,7 @@ export default function CoordinatorDetailsModal({
                             <p className="mb-1 text-sm text-gray-500">
                                 أنشأ بواسطة
                             </p>
-                            <p className="wrap-break-word font-medium">
+                            <p className="break-words font-medium">
                                 {coordinator.created_by ?? "—"}
                             </p>
                         </div>
@@ -453,7 +453,6 @@ export default function CoordinatorDetailsModal({
 
                     <div className="mt-6">
                         <h3 className="mb-3 font-bold">صور المستندات</h3>
-
                         {editing ? (
                             <>
                                 <CoordinatorPhotos
