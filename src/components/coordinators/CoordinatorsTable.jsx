@@ -29,7 +29,7 @@ export default function CoordinatorsTable({
 
     return (
         <div className="overflow-x-auto rounded-xl bg-white shadow">
-            <table className="min-w-[1400px] w-full border-collapse text-right text-sm">
+            <table className="min-w-350 w-full border-collapse text-right text-sm">
                 <thead className="bg-orange-600 text-white">
                     <tr>
                         {[
