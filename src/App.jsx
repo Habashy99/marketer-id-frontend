@@ -9,6 +9,7 @@ import UsersManagement from "./pages/users/usersManagement.jsx";
 import CoordinatorsManagement from "./pages/marketing/coordinators/coordinatorsManagement.jsx";
 import PricingHome from "./pages/pricing/pricingHome.jsx";
 import PrintLogManagment from "./pages/marketing/printLogs/printLogsManagement.jsx";
+import CardDesigner from "./pages/marketing/cardDesigner/cardDesigner.jsx";
 
 
 
@@ -33,6 +34,10 @@ function App() {
                     <Route
                         path="/marketing/coordinators"
                         element={<CoordinatorsManagement />}
+                    />
+                    <Route
+                        path="/marketing/card-designer"
+                        element={<CardDesigner />}
                     />
                     <Route path="/pricing" element={<PricingHome />} />
 
