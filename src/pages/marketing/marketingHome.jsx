@@ -66,40 +66,42 @@ function MarketingHome() {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    useEffect(() => {
-        if (!user) {
-            console.log("No authenticated user found in AuthContext");
-            setLoading(false);
-            return;
-        }
 
-        const fetchStats = async () => {
-            setLoading(true);
-            setError("");
+useEffect(() => {
+    if (!user) {
+        setLoading(false);
+        setError("المستخدم غير مسجل الدخول.");
+        return;
+    }
 
-            try {
-                const data = await sendHttpReq("dashboard/stats");
+    const fetchStats = async () => {
+        setLoading(true);
+        setError("");
 
-                console.log("Stats API status:", response.status);
-                console.log("Stats API response:", data);
+        try {
+            const data = await sendHttpReq("dashboard/stats");
 
-                if (!response.ok) {
-                    throw new Error(
-                        data.message || "Failed to load statistics"
-                    );
-                }
+            console.log("Dashboard API data:", data);
+            console.log("Dashboard stats:", data?.stats);
 
-                setStats(data.stats);
-            } catch (err) {
-                console.error("Error fetching dashboard stats:", err);
-                setError(err.message || "Something went wrong");
-            } finally {
-                setLoading(false);
+            if (!data?.stats) {
+                throw new Error(
+                    data?.message || "استجابة API لا تحتوي على stats"
+                );
             }
-        };
 
-        fetchStats();
-    }, [user, location.key]);
+            setStats(data.stats);
+        } catch (err) {
+            console.error("Dashboard request failed:", err);
+            setError(err.message || "فشل تحميل الإحصائيات");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchStats();
+}, [user, location.key]);
+
 
     return (
         <>
