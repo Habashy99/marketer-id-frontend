@@ -37,8 +37,15 @@ export default function CreateExceptionModal({
 
         try {
             await onSubmit({
-                ...form,
-                coordinator_id: Number(form.coordinator_id),
+                coordinatorCode: Number(
+                    coordinators.find(
+                        (coordinator) =>
+                            coordinator.id === Number(form.coordinator_id)
+                    )?.code
+                ),
+                exceptionName: form.exception_name.trim(),
+                exceptionStartDate: form.exception_start_date,
+                exceptionEndDate: form.exception_end_date,
             });
 
             setForm({
@@ -109,6 +116,7 @@ export default function CreateExceptionModal({
                     </label>
                     <input
                         type="date"
+                        required
                         value={form.exception_start_date}
                         onChange={(event) =>
                             updateField(
@@ -126,6 +134,7 @@ export default function CreateExceptionModal({
                     </label>
                     <input
                         type="date"
+                        required
                         value={form.exception_end_date}
                         onChange={(event) =>
                             updateField(
