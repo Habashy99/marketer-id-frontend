@@ -12,16 +12,6 @@ import PrintLogActions from "../../../components/printLog/PrintLogActions";
 import PrintLogMessages from "../../../components/printLog/PrintLogMessages";
 import PrintLogTable from "../../../components/printLog/PrintLogTable";
 
-async function readResponse(response) {
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-        throw new Error(data.message || "حدث خطأ أثناء تنفيذ الطلب.");
-    }
-
-    return data;
-}
-
 function getDateString(value) {
     if (!value) return "";
 
@@ -66,8 +56,7 @@ export default function PrintLogManagment() {
         setError("");
 
         try {
-            const response = await sendHttpReq("printLog");
-            const data = await readResponse(response);
+            const data = await sendHttpReq("printLog");
 
             if (!Array.isArray(data.logs)) {
                 throw new Error(
@@ -114,7 +103,7 @@ export default function PrintLogManagment() {
         }
 
         const confirmed = window.confirm(
-            `هل تريد حذف سجل الطباعة الخاص بالموظف ${log.name}؟`
+            `هل تريد حذف سجل الطباعة الخاص بالموظف ${log.name}?`
         );
 
         if (!confirmed) return;
@@ -124,13 +113,11 @@ export default function PrintLogManagment() {
         setNotice("");
 
         try {
-            const response = await sendHttpReq(
+            const data = await sendHttpReq(
                 "printLog/deleteLog",
                 "DELETE",
                 { id }
             );
-
-            const data = await readResponse(response);
 
             setLogs((previous) =>
                 previous.filter(
@@ -142,7 +129,7 @@ export default function PrintLogManagment() {
         } catch (err) {
             setError(
                 err.message ||
-                "فشل حذف السجل. تأكد من إعداد مسار الحذف في الخادم."
+                    "فشل حذف السجل. تأكد من إعداد مسار الحذف في الخادم."
             );
         } finally {
             setDeletingId(null);
@@ -153,9 +140,9 @@ export default function PrintLogManagment() {
         const excelRows = filteredLogs.map((log) => ({
             "كود الموظف": log.code ?? "",
             "اسم الموظف": log.name ?? "",
-            "النوع": log.type ?? "",
+            النوع: log.type ?? "",
             "تم بواسطة": log.created_by ?? "",
-            "التاريخ": log.date ? formatDate(log.date) : "",
+            التاريخ: log.date ? formatDate(log.date) : "",
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(excelRows);

@@ -78,8 +78,7 @@ function MarketingHome() {
             setError("");
 
             try {
-                const response = await sendHttpReq("dashboard/stats");
-                const data = await response.json();
+                const data = await sendHttpReq("dashboard/stats");
 
                 console.log("Stats API status:", response.status);
                 console.log("Stats API response:", data);

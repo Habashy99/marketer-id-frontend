@@ -25,20 +25,17 @@ function UsersManagement() {
         setError("");
 
         try {
-            const query = code.trim()
-                ? `?code=${encodeURIComponent(code.trim())}`
+            const trimmedCode = code.trim();
+
+            const query = trimmedCode
+                ? `?code=${encodeURIComponent(trimmedCode)}`
                 : "";
 
-            const response = await sendHttpReq(`users${query}`);
-            const data = await response.json();
+            const data = await sendHttpReq(`users${query}`);
 
-            if (!response.ok) {
-                throw new Error(data.message || "Failed to load users");
-            }
-
-            setUsers(data.users || []);
+            setUsers(Array.isArray(data?.users) ? data.users : []);
         } catch (err) {
-            setError(err.message || "Failed to load users");
+            setError(err.message || "Failed to load users.");
         } finally {
             setLoading(false);
         }
@@ -53,22 +50,28 @@ function UsersManagement() {
         fetchUsers();
     }, [user, navigate, fetchUsers]);
 
-    const handleSearch = (e) => {
-        e.preventDefault();
+    const handleSearch = (event) => {
+        event.preventDefault();
         fetchUsers(searchCode);
     };
 
     const handleShowAll = () => {
         setSearchCode("");
-        fetchUsers();
+        fetchUsers("");
     };
 
-    const handleSuccess = () => {
+    const handleSuccess = async () => {
         setModal(null);
-        fetchUsers(searchCode);
+        await fetchUsers(searchCode);
     };
 
-    if (!user) return null;
+    const handleCloseModal = () => {
+        setModal(null);
+    };
+
+    if (!user) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -89,13 +92,16 @@ function UsersManagement() {
                 />
 
                 {error && (
-                    <div className="mt-5 rounded-lg bg-red-50 p-4 text-red-700">
-                        {error}
+                    <div
+                        role="alert"
+                        className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700"
+                    >
+                        <span>{error}</span>
 
                         <button
                             type="button"
                             onClick={() => fetchUsers(searchCode)}
-                            className="ml-3 underline"
+                            className="font-semibold underline"
                         >
                             إعادة المحاولة
                         </button>
@@ -108,12 +114,12 @@ function UsersManagement() {
                 />
             </main>
 
-            {modal && (
+            {modal !== null && (
                 <UserModal
                     type={modal}
-                    onClose={() => setModal(null)}
-                    onSuccess={handleSuccess}
                     currentUser={user}
+                    onClose={handleCloseModal}
+                    onSuccess={handleSuccess}
                 />
             )}
         </div>

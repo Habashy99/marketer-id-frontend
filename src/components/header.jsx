@@ -8,8 +8,7 @@ function Header() {
 
     const logout = async () => {
         try {
-            const response = await sendHttpReq("users/logout", "POST");
-            const data = await response.json().catch(() => ({}));
+            const data = await sendHttpReq("users/logout", "POST");
 
             if (!response.ok) {
                 throw new Error(data.message || "Failed to log out");

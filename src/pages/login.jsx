@@ -18,6 +18,7 @@ function Login() {
         navigate("/", { replace: true });
     }
 
+
     const handleLogin = async (e) => {
         e.preventDefault();
 
@@ -25,16 +26,10 @@ function Login() {
         setLoading(true);
 
         try {
-            const response = await sendHttpReq("users/login", "POST", {
+            const data = await sendHttpReq("users/login", "POST", {
                 code: code.trim(),
                 password,
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || "فشل تسجيل الدخول");
-            }
 
             if (!data.user) {
                 throw new Error("لم يتم العثور على بيانات المستخدم");
@@ -49,6 +44,7 @@ function Login() {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="min-h-screen">

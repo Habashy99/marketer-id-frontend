@@ -29,57 +29,64 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
         e.preventDefault();
         setError("");
         setSuccess("");
+
+        const trimmedCode = code.trim();
+
+        if (!/^\d+$/.test(trimmedCode) || Number(trimmedCode) <= 0) {
+            setError("يرجى إدخال كود مستخدم صحيح.");
+            return;
+        }
+
+        if (type === "create") {
+            if (!name.trim()) {
+                setError("يرجى إدخال اسم المستخدم.");
+                return;
+            }
+
+            if (!password) {
+                setError("يرجى إدخال كلمة المرور.");
+                return;
+            }
+        }
+
+        if (!["create", "give", "delete"].includes(type)) {
+            setError("نوع العملية غير صحيح.");
+            return;
+        }
+
         setLoading(true);
 
         try {
-            let response;
+            let data;
 
             if (type === "create") {
-                response = await sendHttpReq(
-                    "users/createUser",
-                    "POST",
-                    {
-                        code: Number(code),
-                        name: name.trim(),
-                        password,
-                        createdBy: currentUser.code,
-                        type: userType,
-                    }
-                );
+                data = await sendHttpReq("users/createUser", "POST", {
+                    code: Number(trimmedCode),
+                    name: name.trim(),
+                    password,
+                    createdBy: currentUser?.code,
+                    type: userType,
+                });
             } else if (type === "give") {
-                response = await sendHttpReq(
-                    "authsUser/createAuthUser",
-                    "POST",
-                    {
-                        authId: Number(permission),
-                        code: Number(code),
-                    }
-                );
+                data = await sendHttpReq("authsUser/createAuthUser", "POST", {
+                    authId: Number(permission),
+                    code: Number(trimmedCode),
+                });
             } else {
-                response = await sendHttpReq(
-                    "authsUser/deleteAuthUser",
-                    "DELETE",
-                    {
-                        code: Number(code),
-                        authId: Number(permission),
-                    }
-                );
+                data = await sendHttpReq("authsUser/deleteAuthUser", "DELETE", {
+                    code: Number(trimmedCode),
+                    authId: Number(permission),
+                });
             }
 
-            const data = await response.json();
+            setSuccess(data?.message || "تمت العملية بنجاح.");
 
-            if (!response.ok) {
-                throw new Error(data.message || "فشلت العملية");
-            }
+            // Allow the success message to appear before refreshing the list.
+            await new Promise((resolve) => setTimeout(resolve, 700));
 
-            setSuccess(data.message || "تمت العملية بنجاح");
-
-            // Give the user time to see the success message.
-            setTimeout(() => {
-                onSuccess();
-            }, 500);
+            await onSuccess();
         } catch (err) {
-            setError(err.message || "حدث خطأ أثناء تنفيذ العملية");
+            setError(err.message || "حدث خطأ أثناء تنفيذ العملية.");
         } finally {
             setLoading(false);
         }
@@ -87,9 +94,10 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            dir="rtl"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
             onMouseDown={(e) => {
-                if (e.target === e.currentTarget) {
+                if (e.target === e.currentTarget && !loading) {
                     onClose();
                 }
             }}
@@ -105,14 +113,15 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                         id="user-modal-title"
                         className="text-xl font-bold text-orange-600"
                     >
-                        {titles[type]}
+                        {titles[type] || "إدارة المستخدمين"}
                     </h2>
 
                     <button
                         type="button"
                         onClick={onClose}
+                        disabled={loading}
                         aria-label="إغلاق"
-                        className="rounded-lg px-3 py-1 text-2xl text-gray-500 hover:bg-gray-100"
+                        className="rounded-lg px-3 py-1 text-2xl text-gray-500 hover:bg-gray-100 disabled:opacity-50"
                     >
                         ×
                     </button>
@@ -126,9 +135,11 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                                     الاسم
                                 </label>
                                 <input
+                                    type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     required
+                                    autoFocus
                                     className="w-full rounded-lg border border-gray-300 px-3 py-3"
                                 />
                             </div>
@@ -139,6 +150,7 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                                 </label>
                                 <input
                                     type="number"
+                                    min="1"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value)}
                                     required
@@ -176,7 +188,7 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                         </>
                     )}
 
-                    {type !== "create" && (
+                    {(type === "give" || type === "delete") && (
                         <>
                             <div>
                                 <label className="mb-1 block text-sm font-medium">
@@ -184,9 +196,11 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                                 </label>
                                 <input
                                     type="number"
+                                    min="1"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value)}
                                     required
+                                    autoFocus
                                     className="w-full rounded-lg border border-gray-300 px-3 py-3"
                                 />
                             </div>
@@ -214,13 +228,13 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                     )}
 
                     {error && (
-                        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                        <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
                             {error}
                         </p>
                     )}
 
                     {success && (
-                        <p className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+                        <p role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
                             {success}
                         </p>
                     )}

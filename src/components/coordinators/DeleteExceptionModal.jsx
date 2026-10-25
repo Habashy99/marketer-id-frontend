@@ -34,7 +34,10 @@ export default function DeleteExceptionModal({
         }
 
         try {
-            await onSubmit(Number(exceptionId));
+            await onSubmit({
+                coordinatorId: Number(coordinatorId),
+                exceptionId: Number(exceptionId),
+            });
             setCoordinatorId("");
             setExceptionId("");
         } catch (err) {

@@ -1,28 +1,20 @@
+
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Header from "../../../components/header";
 import { sendHttpReq } from "../../../lib/httpHandler";
-import { useNavigate } from "react-router-dom";
 import CoordinatorsToolbar from "../../../components/coordinators/CoordinatorsToolbar";
 import CoordinatorsTable from "../../../components/coordinators/CoordinatorsTable";
 import CoordinatorDetailsModal from "../../../components/coordinators/CoordinatorDetailsModal";
 import CreateCoordinatorModal from "../../../components/coordinators/CreateCoordinatorModal";
 import CreateExceptionModal from "../../../components/coordinators/CreateExceptionModal";
 import DeleteExceptionModal from "../../../components/coordinators/DeleteExceptionModal";
+
 import {
     groupCoordinators,
     normalizeJob,
 } from "../../../utils/coordinatorHelpers";
-
-async function readResponse(response) {
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-        throw new Error(data.message || "حدث خطأ أثناء تنفيذ الطلب.");
-    }
-
-    return data;
-}
 
 export default function CoordinatorsManagement() {
     const [rows, setRows] = useState([]);
@@ -30,7 +22,9 @@ export default function CoordinatorsManagement() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
+
     const navigate = useNavigate();
+
     const [search, setSearch] = useState("");
     const [job, setJob] = useState("");
     const [filter, setFilter] = useState("");
@@ -46,11 +40,12 @@ export default function CoordinatorsManagement() {
         setError("");
 
         try {
-            const response = await sendHttpReq("coordinators");
-            const data = await readResponse(response);
+            const data = await sendHttpReq("coordinators");
 
             if (!Array.isArray(data.coordinators)) {
-                throw new Error("استجابة الخادم لا تحتوي على قائمة المنسقين.");
+                throw new Error(
+                    "استجابة الخادم لا تحتوي على قائمة المنسقين."
+                );
             }
 
             setRows(data.coordinators);
@@ -84,7 +79,9 @@ export default function CoordinatorsManagement() {
                     coordinator.governorate,
                     coordinator.national_id_number,
                 ].some((value) =>
-                    String(value ?? "").toLowerCase().includes(searchValue)
+                    String(value ?? "")
+                        .toLowerCase()
+                        .includes(searchValue)
                 );
 
             const matchesJob =
@@ -105,6 +102,7 @@ export default function CoordinatorsManagement() {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     expiry.setHours(0, 0, 0, 0);
+
                     expiredCertificate = expiry < today;
                 }
             }
@@ -124,16 +122,15 @@ export default function CoordinatorsManagement() {
         setNotice("");
 
         try {
-            const response = await sendHttpReq(
+            const data = await sendHttpReq(
                 "coordinators/createCoordinator",
                 "POST",
                 formData
             );
 
-            const data = await readResponse(response);
-
             setCreateCoordinatorOpen(false);
             setNotice(data.message || "تم إنشاء المنسق بنجاح.");
+
             await loadCoordinators();
         } catch (err) {
             setError(err.message || "فشل إنشاء المنسق.");
@@ -149,16 +146,15 @@ export default function CoordinatorsManagement() {
         setNotice("");
 
         try {
-            const response = await sendHttpReq(
+            const data = await sendHttpReq(
                 "exceptions/createException",
                 "POST",
                 formData
             );
 
-            const data = await readResponse(response);
-
             setCreateExceptionOpen(false);
             setNotice(data.message || "تمت إضافة الاستثناء بنجاح.");
+
             await loadCoordinators();
         } catch (err) {
             setError(err.message || "فشل إضافة الاستثناء.");
@@ -174,21 +170,19 @@ export default function CoordinatorsManagement() {
         setNotice("");
 
         try {
-            const response = await sendHttpReq(
+            const data = await sendHttpReq(
                 "exceptions/deleteException",
                 "DELETE",
                 { exception_id: exceptionId }
             );
 
-            const data = await readResponse(response);
-
             setDeleteExceptionOpen(false);
             setNotice(data.message || "تم حذف الاستثناء بنجاح.");
 
             if (
-                selectedCoordinator &&
-                selectedCoordinator.exceptions?.some(
-                    (item) => Number(item.exception_id) === exceptionId
+                selectedCoordinator?.exceptions?.some(
+                    (item) =>
+                        Number(item.exception_id) === Number(exceptionId)
                 )
             ) {
                 setSelectedCoordinator(null);
@@ -202,27 +196,27 @@ export default function CoordinatorsManagement() {
             setSaving(false);
         }
     }
+
     async function handleUpdateCoordinator(formData) {
         setSaving(true);
         setError("");
         setNotice("");
 
         try {
-            const response = await sendHttpReq(
+            const data = await sendHttpReq(
                 "coordinators/updateCoordinator",
                 "PUT",
                 formData
             );
 
-            const data = await readResponse(response);
             const updatedId = Number(formData.get("id"));
 
-            // Refresh the coordinators once.
-            const refreshResponse = await sendHttpReq("coordinators");
-            const refreshData = await readResponse(refreshResponse);
+            const refreshData = await sendHttpReq("coordinators");
 
             if (!Array.isArray(refreshData.coordinators)) {
-                throw new Error("استجابة الخادم لا تحتوي على قائمة المنسقين.");
+                throw new Error(
+                    "استجابة الخادم لا تحتوي على قائمة المنسقين."
+                );
             }
 
             setRows(refreshData.coordinators);
@@ -233,6 +227,8 @@ export default function CoordinatorsManagement() {
 
             if (updatedCoordinator) {
                 setSelectedCoordinator(updatedCoordinator);
+            } else {
+                setSelectedCoordinator(null);
             }
 
             setNotice(data.message || "تم تحديث بيانات المنسق بنجاح.");
@@ -249,7 +245,6 @@ export default function CoordinatorsManagement() {
             <Header />
 
             <main className="mx-auto max-w-[1800px] p-4 sm:p-6">
-
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                     <h1 className="text-2xl font-bold text-orange-700">
                         إدارة المنسقين والمندوبين
@@ -275,13 +270,13 @@ export default function CoordinatorsManagement() {
                     </div>
                 </div>
 
-
                 {error && (
                     <div
                         role="alert"
                         className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-red-700"
                     >
                         <span>{error}</span>
+
                         <button
                             type="button"
                             onClick={() => setError("")}
@@ -295,6 +290,7 @@ export default function CoordinatorsManagement() {
                 {notice && (
                     <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 p-3 text-green-800">
                         <span>{notice}</span>
+
                         <button
                             type="button"
                             onClick={() => setNotice("")}
@@ -312,9 +308,15 @@ export default function CoordinatorsManagement() {
                     setJob={setJob}
                     filter={filter}
                     setFilter={setFilter}
-                    onCreateCoordinator={() => setCreateCoordinatorOpen(true)}
-                    onCreateException={() => setCreateExceptionOpen(true)}
-                    onDeleteException={() => setDeleteExceptionOpen(true)}
+                    onCreateCoordinator={() =>
+                        setCreateCoordinatorOpen(true)
+                    }
+                    onCreateException={() =>
+                        setCreateExceptionOpen(true)
+                    }
+                    onDeleteException={() =>
+                        setDeleteExceptionOpen(true)
+                    }
                 />
 
                 <div className="mb-3 text-sm text-gray-600">

@@ -22,30 +22,35 @@ export async function sendHttpReq(url, method = "GET", data = null) {
     let response;
 
     try {
-        response = await fetch(`http://localhost:3000/${url}`, options);
-    } catch (error) {
+        response = await fetch(
+            `http://localhost:3000/${url.replace(/^\/+/, "")}`,
+            options
+        );
+    } catch {
         throw new Error("Cannot connect to the server.");
     }
 
-    // Redirect to login if the session has expired
+    const result = await response.json().catch(() => ({}));
+
     if (response.status === 401) {
-        const isLoginRequest = url.replace(/^\/+/, "") === "users/login";
+        const normalizedUrl = url.replace(/^\/+/, "");
+        const isLoginRequest = normalizedUrl === "users/login";
 
         if (!isLoginRequest) {
             window.location.replace("/login");
         }
-
-        const result = await response.json().catch(() => ({}));
 
         throw new Error(
             result.message || "Your session has expired. Please login again."
         );
     }
 
-    const result = await response.json().catch(() => ({}));
-
     if (!response.ok) {
-        throw new Error(result.message || "Something went wrong.");
+        throw new Error(
+            result.message ||
+            result.error ||
+            `Request failed with status ${response.status}`
+        );
     }
 
     return result;
