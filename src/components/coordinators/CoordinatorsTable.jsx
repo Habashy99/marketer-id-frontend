@@ -1,7 +1,9 @@
 import {
     formatDate,
     isCertificateExpired,
+    getPhotoUrl,
 } from "../../utils/coordinatorHelpers";
+
 import CoordinatorPhotos from "./CoordinatorPhotos";
 
 export default function CoordinatorsTable({
@@ -27,7 +29,7 @@ export default function CoordinatorsTable({
 
     return (
         <div className="overflow-x-auto rounded-xl bg-white shadow">
-            <table className="min-w-350 w-full border-collapse text-right text-sm">
+            <table className="min-w-[1400px] w-full border-collapse text-right text-sm">
                 <thead className="bg-orange-600 text-white">
                     <tr>
                         {[
@@ -40,10 +42,13 @@ export default function CoordinatorsTable({
                             "الحالة",
                             "الموقف الأمني",
                             "انتهاء الشهادة الصحية",
-                            "الصور",
+                            "الصورة الشخصية",
                             "الاستثناءات",
                         ].map((heading) => (
-                            <th key={heading} className="whitespace-nowrap p-3">
+                            <th
+                                key={heading}
+                                className="whitespace-nowrap p-3"
+                            >
                                 {heading}
                             </th>
                         ))}
@@ -58,29 +63,46 @@ export default function CoordinatorsTable({
 
                         const expired = isCertificateExpired(coordinator);
 
-                        const rowClass = inactive || expired
-                            ? "bg-red-50 hover:bg-red-100"
-                            : "hover:bg-orange-50";
+                        const rowClass =
+                            inactive || expired
+                                ? "bg-red-50 hover:bg-red-100"
+                                : "hover:bg-orange-50";
+
+                        const profilePicture = coordinator.profile_picture;
 
                         return (
                             <tr
                                 key={coordinator.id}
-                                onClick={() => onSelectCoordinator(coordinator)}
+                                onClick={() =>
+                                    onSelectCoordinator(coordinator)
+                                }
                                 className={`${rowClass} cursor-pointer border-b border-gray-200`}
                                 title="اضغط لعرض كل بيانات المنسق"
                             >
-                                <td className="p-3">{coordinator.code ?? "—"}</td>
+                                <td className="whitespace-nowrap p-3">
+                                    {coordinator.code ?? "—"}
+                                </td>
+
                                 <td className="whitespace-nowrap p-3 font-semibold">
                                     {coordinator.name ?? "—"}
                                 </td>
+
                                 <td className="whitespace-nowrap p-3">
                                     {coordinator.job ?? "—"}
                                 </td>
-                                <td className="p-3">{coordinator.company_name ?? "—"}</td>
+
+                                <td className="p-3">
+                                    {coordinator.company_name ?? "—"}
+                                </td>
+
                                 <td className="whitespace-nowrap p-3">
                                     {coordinator.mobile ?? "—"}
                                 </td>
-                                <td className="p-3">{coordinator.governorate ?? "—"}</td>
+
+                                <td className="p-3">
+                                    {coordinator.governorate ?? "—"}
+                                </td>
+
                                 <td className="whitespace-nowrap p-3">
                                     <span
                                         className={`rounded-full px-2 py-1 ${
@@ -92,9 +114,11 @@ export default function CoordinatorsTable({
                                         {coordinator.states || "—"}
                                     </span>
                                 </td>
+
                                 <td className="p-3">
                                     {coordinator.security_situation ?? "—"}
                                 </td>
+
                                 <td
                                     className={`whitespace-nowrap p-3 ${
                                         expired ? "font-bold text-red-700" : ""
@@ -103,30 +127,58 @@ export default function CoordinatorsTable({
                                     {formatDate(
                                         coordinator.health_certificate_expiry_date
                                     )}
+
                                     {expired && (
-                                        <span className="mr-1">(منتهية)</span>
+                                        <span className="mr-1">
+                                            (منتهية)
+                                        </span>
                                     )}
                                 </td>
+
+                                {/* Profile picture */}
                                 <td
-                                    className="min-w-36 p-3"
-                                    onClick={(event) => event.stopPropagation()}
+                                    className="min-w-32 p-3"
+                                    onClick={(event) =>
+                                        event.stopPropagation()
+                                    }
                                 >
-                                    <CoordinatorPhotos
-                                        coordinator={coordinator}
-                                        compact
-                                    />
+                                    {profilePicture ? (
+                                        <img
+                                            src={getPhotoUrl(profilePicture)}
+                                            alt={`صورة ${coordinator.name ?? "المنسق"}`}
+                                            loading="lazy"
+                                            className="h-16 w-16 cursor-pointer rounded-lg border border-gray-200 object-cover transition hover:scale-105"
+                                            onClick={() =>
+                                                onSelectCoordinator(coordinator)
+                                            }
+                                            onError={(event) => {
+                                                event.currentTarget.style.display =
+                                                    "none";
+                                            }}
+                                        />
+                                    ) : (
+                                        <span className="text-gray-400">
+                                            لا توجد صورة
+                                        </span>
+                                    )}
                                 </td>
+
                                 <td className="max-w-56 p-3">
                                     {coordinator.exceptions?.length ? (
                                         <div className="flex flex-col gap-1">
-                                            {coordinator.exceptions.map((exception) => (
-                                                <span
-                                                    key={exception.exception_id}
-                                                    className="rounded bg-blue-50 px-2 py-1 text-blue-800"
-                                                >
-                                                    {exception.exception_name || "استثناء"}
-                                                </span>
-                                            ))}
+                                            {coordinator.exceptions.map(
+                                                (exception) => (
+                                                    <span
+                                                        key={
+                                                            exception.exception_id
+                                                        }
+                                                        className="rounded bg-blue-50 px-2 py-1 text-blue-800"
+                                                    >
+                                                        {exception.exception_name ||
+                                                            "استثناء"}
+                                                    </span>
+                                                )
+                                            )}
                                         </div>
                                     ) : (
                                         "لا توجد استثناءات"
