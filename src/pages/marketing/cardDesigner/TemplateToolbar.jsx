@@ -9,7 +9,7 @@ export default function TemplateToolbar({
     error,
     notice,
 }) {
-     const navigate = useNavigate();
+    const navigate = useNavigate();
     return (
         <>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 no-print">
@@ -41,19 +41,19 @@ export default function TemplateToolbar({
 
                     <button
                         type="button"
-                        onClick={() => navigate("/marketing")}
-                        className="rounded-lg border border-slate-300 bg-orange-600 text-white px-4 py-2"
-                    >
-                       العودة إلى التسويق
-                    </button>
-
-                    <button
-                        type="button"
                         onClick={saveTemplate}
                         disabled={busy}
                         className="rounded-lg bg-green-600 px-4 py-2 text-white disabled:opacity-50"
                     >
                         {busy ? "جارٍ الحفظ..." : "حفظ القالب"}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => navigate("/marketing")}
+                        className="rounded-lg border border-slate-300 bg-orange-600 text-white px-4 py-2"
+                    >
+                        العودة إلى التسويق
                     </button>
                 </div>
             </div>
