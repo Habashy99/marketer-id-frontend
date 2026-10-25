@@ -21,7 +21,12 @@ const ELEMENT_TYPES = [
     { type: "company_name", label: "الشركة", x: 220, y: 145 },
     { type: "date", label: "التاريخ", x: 220, y: 200 },
     { type: "code", label: "كود الموظف", x: 220, y: 245 },
-    { type: "national_id_number", label: "الرقم القومي", x: 220, y: 290 },
+    {
+        type: "national_id_number",
+        label: "الرقم القومي",
+        x: 220,
+        y: 290,
+    },
     { type: "job", label: "الوظيفة", x: 220, y: 335 },
 ];
 
@@ -35,7 +40,9 @@ const SAMPLE_VALUES = {
 };
 
 function createElement(type) {
-    const definition = ELEMENT_TYPES.find((item) => item.type === type);
+    const definition = ELEMENT_TYPES.find(
+        (item) => item.type === type
+    );
 
     if (!definition) {
         throw new Error(`Unknown element type: ${type}`);
@@ -101,7 +108,9 @@ export default function CardTemplateSettings() {
     const [canvasResize, setCanvasResize] = useState(null);
 
     const selectedElement =
-        template.elements.find((element) => element.id === selectedId) ?? null;
+        template.elements.find(
+            (element) => element.id === selectedId
+        ) ?? null;
 
     const updateTemplate = (key, value) => {
         setTemplate((current) => ({
@@ -169,7 +178,9 @@ export default function CardTemplateSettings() {
 
         setTemplate((current) => ({
             ...current,
-            elements: current.elements.some((item) => item.type === type)
+            elements: current.elements.some(
+                (item) => item.type === type
+            )
                 ? current.elements
                 : [...current.elements, element],
         }));
@@ -203,7 +214,9 @@ export default function CardTemplateSettings() {
         design: {
             version: 1,
             orientation:
-                template.width >= template.height ? "horizontal" : "vertical",
+                template.width >= template.height
+                    ? "horizontal"
+                    : "vertical",
             canvas: {
                 width: template.width,
                 height: template.height,
@@ -211,7 +224,9 @@ export default function CardTemplateSettings() {
             },
             margins: template.margins,
             padding: template.padding,
-            elements: template.elements.map(({ id, ...element }) => element),
+            elements: template.elements.map(
+                ({ id, ...element }) => element
+            ),
         },
     });
 
@@ -261,12 +276,15 @@ export default function CardTemplateSettings() {
 
     const previewScale = Math.min(1, 800 / template.width);
 
+    // Drag the selected element with the mouse.
     useEffect(() => {
         if (!drag) return;
 
         const handleMouseMove = (event) => {
-            const deltaX = (event.clientX - drag.startX) / drag.scale;
-            const deltaY = (event.clientY - drag.startY) / drag.scale;
+            const deltaX =
+                (event.clientX - drag.startX) / drag.scale;
+            const deltaY =
+                (event.clientY - drag.startY) / drag.scale;
 
             const x = Math.round(
                 Math.max(
@@ -291,7 +309,9 @@ export default function CardTemplateSettings() {
             setTemplate((current) => ({
                 ...current,
                 elements: current.elements.map((element) =>
-                    element.id === drag.id ? { ...element, x, y } : element
+                    element.id === drag.id
+                        ? { ...element, x, y }
+                        : element
                 ),
             }));
         };
@@ -307,14 +327,17 @@ export default function CardTemplateSettings() {
         };
     }, [drag, template.width, template.height]);
 
+    // Resize the canvas using its width and height handles.
     useEffect(() => {
         if (!canvasResize) return;
 
         const handleMouseMove = (event) => {
             const deltaX =
-                (event.clientX - canvasResize.startX) / canvasResize.scale;
+                (event.clientX - canvasResize.startX) /
+                canvasResize.scale;
             const deltaY =
-                (event.clientY - canvasResize.startY) / canvasResize.scale;
+                (event.clientY - canvasResize.startY) /
+                canvasResize.scale;
 
             setTemplate((current) => {
                 const width =
@@ -323,7 +346,9 @@ export default function CardTemplateSettings() {
                               100,
                               Math.min(
                                   3000,
-                                  Math.round(canvasResize.startWidth + deltaX)
+                                  Math.round(
+                                      canvasResize.startWidth + deltaX
+                                  )
                               )
                           )
                         : current.width;
@@ -334,7 +359,9 @@ export default function CardTemplateSettings() {
                               100,
                               Math.min(
                                   3000,
-                                  Math.round(canvasResize.startHeight + deltaY)
+                                  Math.round(
+                                      canvasResize.startHeight + deltaY
+                                  )
                               )
                           )
                         : current.height;
@@ -374,6 +401,111 @@ export default function CardTemplateSettings() {
             window.removeEventListener("mouseup", handleMouseUp);
         };
     }, [canvasResize]);
+
+    // Move the selected element with the keyboard arrow keys.
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            const arrowKeys = [
+                "ArrowLeft",
+                "ArrowRight",
+                "ArrowUp",
+                "ArrowDown",
+            ];
+
+            if (!arrowKeys.includes(event.key)) return;
+            if (!selectedId) return;
+
+            // Don't intercept arrow keys while editing form fields.
+            const target = event.target;
+
+            if (
+                target instanceof HTMLElement &&
+                (
+                    target.isContentEditable ||
+                    target.closest(
+                        'input, textarea, select, [contenteditable="true"]'
+                    )
+                )
+            ) {
+                return;
+            }
+
+            // Don't move the element while resizing or dragging.
+            if (drag || canvasResize) return;
+
+            const step = event.shiftKey ? 10 : 1;
+
+            const selected = template.elements.find(
+                (element) => element.id === selectedId
+            );
+
+            if (!selected) return;
+
+            event.preventDefault();
+
+            setTemplate((current) => ({
+                ...current,
+                elements: current.elements.map((element) => {
+                    if (element.id !== selectedId) return element;
+
+                    let x = element.x;
+                    let y = element.y;
+
+                    switch (event.key) {
+                        case "ArrowLeft":
+                            x -= step;
+                            break;
+                        case "ArrowRight":
+                            x += step;
+                            break;
+                        case "ArrowUp":
+                            y -= step;
+                            break;
+                        case "ArrowDown":
+                            y += step;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    return {
+                        ...element,
+                        x: Math.max(
+                            0,
+                            Math.min(
+                                x,
+                                Math.max(
+                                    0,
+                                    current.width - element.width
+                                )
+                            )
+                        ),
+                        y: Math.max(
+                            0,
+                            Math.min(
+                                y,
+                                Math.max(
+                                    0,
+                                    current.height - element.height
+                                )
+                            )
+                        ),
+                    };
+                }),
+            }));
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [
+        selectedId,
+        template.elements,
+        drag,
+        canvasResize,
+    ]);
 
     return (
         <div className="min-h-screen bg-slate-100">
