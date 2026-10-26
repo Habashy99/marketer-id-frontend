@@ -1,15 +1,15 @@
+
 import {
     formatDate,
     isCertificateExpired,
     getPhotoUrl,
 } from "../../utils/coordinatorHelpers";
 
-import CoordinatorPhotos from "./CoordinatorPhotos";
-
 export default function CoordinatorsTable({
     coordinators,
     loading,
     onSelectCoordinator,
+    onPrintCoordinator,
 }) {
     if (loading) {
         return (
@@ -44,6 +44,7 @@ export default function CoordinatorsTable({
                             "انتهاء الشهادة الصحية",
                             "الصورة الشخصية",
                             "الاستثناءات",
+                            "طباعة الكارت",
                         ].map((heading) => (
                             <th
                                 key={heading}
@@ -68,13 +69,14 @@ export default function CoordinatorsTable({
                                 ? "bg-red-50 hover:bg-red-100"
                                 : "hover:bg-orange-50";
 
-                        const profilePicture = coordinator.profile_picture;
+                        const profilePicture =
+                            coordinator.profile_picture;
 
                         return (
                             <tr
                                 key={coordinator.id}
                                 onClick={() =>
-                                    onSelectCoordinator(coordinator)
+                                    onSelectCoordinator?.(coordinator)
                                 }
                                 className={`${rowClass} cursor-pointer border-b border-gray-200`}
                                 title="اضغط لعرض كل بيانات المنسق"
@@ -105,11 +107,10 @@ export default function CoordinatorsTable({
 
                                 <td className="whitespace-nowrap p-3">
                                     <span
-                                        className={`rounded-full px-2 py-1 ${
-                                            inactive
+                                        className={`rounded-full px-2 py-1 ${inactive
                                                 ? "bg-red-200 text-red-800"
                                                 : "bg-green-100 text-green-800"
-                                        }`}
+                                            }`}
                                     >
                                         {coordinator.states || "—"}
                                     </span>
@@ -120,9 +121,10 @@ export default function CoordinatorsTable({
                                 </td>
 
                                 <td
-                                    className={`whitespace-nowrap p-3 ${
-                                        expired ? "font-bold text-red-700" : ""
-                                    }`}
+                                    className={`whitespace-nowrap p-3 ${expired
+                                            ? "font-bold text-red-700"
+                                            : ""
+                                        }`}
                                 >
                                     {formatDate(
                                         coordinator.health_certificate_expiry_date
@@ -135,7 +137,6 @@ export default function CoordinatorsTable({
                                     )}
                                 </td>
 
-                                {/* Profile picture */}
                                 <td
                                     className="min-w-32 p-3"
                                     onClick={(event) =>
@@ -149,7 +150,9 @@ export default function CoordinatorsTable({
                                             loading="lazy"
                                             className="h-16 w-16 cursor-pointer rounded-lg border border-gray-200 object-cover transition hover:scale-105"
                                             onClick={() =>
-                                                onSelectCoordinator(coordinator)
+                                                onSelectCoordinator?.(
+                                                    coordinator
+                                                )
                                             }
                                             onError={(event) => {
                                                 event.currentTarget.style.display =
@@ -169,9 +172,7 @@ export default function CoordinatorsTable({
                                             {coordinator.exceptions.map(
                                                 (exception) => (
                                                     <span
-                                                        key={
-                                                            exception.exception_id
-                                                        }
+                                                        key={exception.exception_id}
                                                         className="rounded bg-blue-50 px-2 py-1 text-blue-800"
                                                     >
                                                         {exception.exception_name ||
@@ -183,6 +184,22 @@ export default function CoordinatorsTable({
                                     ) : (
                                         "لا توجد استثناءات"
                                     )}
+                                </td>
+
+                                {/* Print card */}
+                                <td
+                                    className="whitespace-nowrap p-3"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            onPrintCoordinator(coordinator);
+                                        }}
+                                        className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                                    >
+                                        طباعة كارت
+                                    </button>
                                 </td>
                             </tr>
                         );
