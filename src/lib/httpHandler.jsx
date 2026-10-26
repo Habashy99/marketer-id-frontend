@@ -19,11 +19,12 @@ export async function sendHttpReq(url, method = "GET", data = null) {
         }
     }
 
+    const normalizedUrl = url.replace(/^\/+/, "");
     let response;
 
     try {
         response = await fetch(
-            `http://localhost:3000/${url.replace(/^\/+/, "")}`,
+            `http://localhost:3000/${normalizedUrl}`,
             options
         );
     } catch {
@@ -31,19 +32,6 @@ export async function sendHttpReq(url, method = "GET", data = null) {
     }
 
     const result = await response.json().catch(() => ({}));
-
-    if (response.status === 401) {
-        const normalizedUrl = url.replace(/^\/+/, "");
-        const isLoginRequest = normalizedUrl === "users/login";
-
-        if (!isLoginRequest) {
-            window.location.replace("/login");
-        }
-
-        throw new Error(
-            result.message || "Your session has expired. Please login again."
-        );
-    }
 
     if (!response.ok) {
         throw new Error(
