@@ -4,21 +4,18 @@ import { useAuth } from "../context/authContext";
 
 function Header() {
     const navigate = useNavigate();
-    const { user, logoutUser } = useAuth();
+    const { user, logoutUser, isAuthLoading } = useAuth();
 
     const logout = async () => {
         try {
-            const data = await sendHttpReq("users/logout", "POST");
-
-            if (!response.ok) {
-                throw new Error(data.message || "Failed to log out");
-            }
+            // sendHttpReq should throw if the server returns an HTTP error.
+            await sendHttpReq("users/logout", "POST");
 
             logoutUser();
             navigate("/", { replace: true });
         } catch (error) {
             console.error("Logout error:", error);
-            alert(error.message || "Logout failed");
+            alert(error.message || "Failed to log out");
         }
     };
 
@@ -28,11 +25,11 @@ function Header() {
             className="grid w-full grid-cols-3 items-center bg-white px-3 py-4 sm:px-6"
         >
             <div className="justify-self-start">
-                {user && (
+                {!isAuthLoading && user && (
                     <button
                         type="button"
                         onClick={logout}
-                        className="rounded-lg bg-orange-600 px-3 py-2 text-sm text-white hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
+                        className="rounded-lg bg-orange-600 px-3 py-2 text-sm text-white transition-colors hover:bg-orange-700 sm:px-5 sm:py-3 sm:text-base"
                     >
                         تسجيل الخروج
                     </button>
