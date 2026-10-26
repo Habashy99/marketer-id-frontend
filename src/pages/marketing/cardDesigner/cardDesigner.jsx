@@ -4,11 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header from "../../../components/header";
 import { sendHttpReq } from "../../../lib/httpHandler";
 
-import CanvasSettings from "./CanvasSettings";
-import CardPreview from "./CardPreview";
-import ElementList from "./ElementList";
-import ElementProperties from "./ElementProperties";
-import TemplateToolbar from "./TemplateToolbar";
+import CanvasSettings from "../../../components/cardDesigner/CanvasSettings";
+import CardPreview from "../../../components/cardDesigner/CardPreview";
+import ElementList from "../../../components/cardDesigner/ElementList";
+import ElementProperties from "../../../components/cardDesigner/ElementProperties";
+import TemplateToolbar from "../../../components/cardDesigner/TemplateToolbar";
 
 const TEMPLATES_ENDPOINT = "card-templates";
 const COORDINATOR_ENDPOINT = "coordinators/by-code";
