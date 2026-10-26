@@ -605,45 +605,134 @@ export default function CardTemplateSettings() {
         }
     };
 
-    const handleManualPrint = async () => {
-        if (!printCoordinator || !printDesign) {
-            setPrintError("اختر تصميمًا وأدخل كود الموظف أولًا.");
-            return;
+
+const handleManualPrint = async () => {
+    if (!printCoordinator || !printDesign) {
+        setPrintError("اختر تصميمًا وأدخل كود الموظف أولًا.");
+        return;
+    }
+
+    setPrintBusy(true);
+    setPrintError("");
+
+    let printContainer = null;
+    let cleanup = () => {};
+
+    try {
+        const sourceCard = printAreaRef.current?.querySelector(
+            ".coordinator-print-card"
+        );
+
+        if (!sourceCard) {
+            throw new Error("تعذر العثور على البطاقة المراد طباعتها.");
         }
 
-        setPrintBusy(true);
-        setPrintError("");
+        // Clone the card so React's original DOM is not modified.
+        const cardClone = sourceCard.cloneNode(true);
 
-        try {
-            const images = Array.from(
-                printAreaRef.current?.querySelectorAll("img") ?? []
-            );
+        const width = Number(printDesign.canvas.width);
+        const height = Number(printDesign.canvas.height);
 
-            await Promise.all(
-                images.map((img) => {
-                    if (img.complete) {
-                        return typeof img.decode === "function"
-                            ? img.decode().catch(() => undefined)
-                            : Promise.resolve();
-                    }
+        printContainer = document.createElement("div");
+        printContainer.id = "temporary-coordinator-print";
 
-                    return new Promise((resolve) => {
-                        img.onload = resolve;
-                        img.onerror = resolve;
-                    });
-                })
-            );
+        Object.assign(printContainer.style, {
+            display: "block",
+            position: "absolute",
+            top: "0",
+            left: "0",
+            width: `${width}px`,
+            height: `${height}px`,
+            margin: "0",
+            padding: "0",
+            overflow: "hidden",
+            transform: "none",
+            background: "#ffffff",
+        });
 
-            // Printing happens only when the user clicks this button.
-            window.print();
-        } catch (err) {
-            setPrintError(
-                getErrorMessage(err, "تعذر تجهيز البطاقة للطباعة.")
-            );
-        } finally {
+        Object.assign(cardClone.style, {
+            display: "block",
+            position: "relative",
+            width: `${width}px`,
+            height: `${height}px`,
+            margin: "0",
+            padding: "0",
+            overflow: "hidden",
+            transform: "none",
+            breakInside: "avoid",
+            pageBreakInside: "avoid",
+        });
+
+        const artwork = cardClone.querySelector(".card-artwork");
+
+        if (artwork) {
+            Object.assign(artwork.style, {
+                position: "relative",
+                width: `${width}px`,
+                height: `${height}px`,
+                maxWidth: "none",
+                margin: "0",
+                transform: "none",
+                overflow: "hidden",
+            });
+        }
+
+        printContainer.appendChild(cardClone);
+        document.body.appendChild(printContainer);
+
+        const images = Array.from(printContainer.querySelectorAll("img"));
+
+        await Promise.all(
+            images.map((img) => {
+                if (img.complete) {
+                    return typeof img.decode === "function"
+                        ? img.decode().catch(() => undefined)
+                        : Promise.resolve();
+                }
+
+                return new Promise((resolve) => {
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                });
+            })
+        );
+
+        if (document.fonts?.ready) {
+            await document.fonts.ready;
+        }
+
+        // Allow the browser to lay out the cloned card before printing.
+        await new Promise((resolve) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            });
+        });
+
+        let cleaned = false;
+
+        cleanup = () => {
+            if (cleaned) return;
+            cleaned = true;
+
+            window.removeEventListener("afterprint", cleanup);
+            printContainer?.remove();
             setPrintBusy(false);
-        }
-    };
+        };
+
+        window.addEventListener("afterprint", cleanup, { once: true });
+
+        window.print();
+    } catch (err) {
+        cleanup();
+        printContainer?.remove();
+
+        setPrintError(
+            getErrorMessage(err, "تعذر تجهيز البطاقة للطباعة.")
+        );
+        setPrintBusy(false);
+    }
+};
+
 
     const previewScale = Math.min(1, 800 / template.width);
 
