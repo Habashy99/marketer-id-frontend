@@ -903,7 +903,7 @@ export default function CardTemplateSettings() {
             {/* Print modal */}
             {printModalOpen && (
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-3 sm:p-6"
+                    className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-3 sm:p-6"
                     onMouseDown={(event) => {
                         if (event.target === event.currentTarget) {
                             closePrintModal();
@@ -999,7 +999,7 @@ export default function CardTemplateSettings() {
                                                         }
                                                         className="rounded-xl border border-slate-200 p-4 text-right transition hover:border-orange-500 hover:bg-orange-50"
                                                     >
-                                                        <div className="mb-3 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                                                        <div className="mb-3 flex aspect-4/3 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
                                                             <div
                                                                 style={{
                                                                     transform: `scale(${Math.min(
