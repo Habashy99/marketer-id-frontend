@@ -1147,7 +1147,7 @@ export default function CardTemplateSettings() {
             {/* Print modal */}
             {printModalOpen && (
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-3 sm:p-6"
+                    className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-3 sm:p-6"
                     onMouseDown={(event) => {
                         if (event.target === event.currentTarget) {
                             closePrintModal();
