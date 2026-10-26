@@ -16,6 +16,12 @@ import {
 } from "../../utils/templateUtils";
 
 const TEMPLATES_ENDPOINT = "card-templates";
+const PRINT_LOG_ENDPOINT = "printLog/createLog";
+
+const PRINT_TYPES = [
+    { value: "جديد", label: "جديد" },
+    { value: "بدل فاقد", label: "بدل فاقد" },
+];
 
 const DEFAULT_CANVAS = {
     width: 856,
@@ -124,8 +130,8 @@ function getTemplateSource(record) {
 /* -------------------------------------------------------
    Template normalization
 
-   All saved element coordinates remain in their
-   original pixel units.
+   Keep all saved element coordinates in their original
+   pixel dimensions.
 ------------------------------------------------------- */
 
 function normalizeTemplate(record, index = 0) {
@@ -184,15 +190,8 @@ function normalizeTemplate(record, index = 0) {
                 x: toFiniteNumber(element.x, 0),
                 y: toFiniteNumber(element.y, 0),
 
-                width: toPositiveDimension(
-                    element.width,
-                    1
-                ),
-
-                height: toPositiveDimension(
-                    element.height,
-                    1
-                ),
+                width: toPositiveDimension(element.width, 1),
+                height: toPositiveDimension(element.height, 1),
             };
         }
     );
@@ -404,7 +403,6 @@ function waitForImage(img) {
     });
 }
 
-
 async function waitForImages(container) {
     const images = Array.from(
         container.querySelectorAll("img")
@@ -415,9 +413,6 @@ async function waitForImages(container) {
 
 /* -------------------------------------------------------
    Card rendering
-
-   The exact same component is used for the preview
-   and the print window.
 ------------------------------------------------------- */
 
 function PrintableCard({ design, coordinator }) {
@@ -526,7 +521,8 @@ function PrintableCard({ design, coordinator }) {
                                         padding: 0,
                                         border: "none",
                                         outline: "none",
-                                        objectFit: element.objectFit ?? "cover",
+                                        objectFit:
+                                            element.objectFit ?? "cover",
                                     }}
                                 />
                             ) : null
@@ -541,11 +537,9 @@ function PrintableCard({ design, coordinator }) {
 }
 
 /* -------------------------------------------------------
-   Preview
+   Card preview
 
    Scale only the outer visual representation.
-   The actual card and its element coordinates stay
-   in the template's original pixel dimensions.
 ------------------------------------------------------- */
 
 function CoordinatorCardPreview({
@@ -599,16 +593,7 @@ function CoordinatorCardPreview({
 }
 
 /* -------------------------------------------------------
-   Print window
-
-   Printing takes place in a separate document.
-   The current application page is never printed.
-------------------------------------------------------- */
-
-
-
-/* -------------------------------------------------------
-   Modal
+   Print coordinator modal
 ------------------------------------------------------- */
 
 export default function PrintCoordinatorModal({
@@ -619,19 +604,23 @@ export default function PrintCoordinatorModal({
     const [selectedTemplateId, setSelectedTemplateId] =
         useState("");
 
+    const [printType, setPrintType] = useState("جديد");
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [printBusy, setPrintBusy] = useState(false);
 
     const modalRef = useRef(null);
     const printAreaRef = useRef(null);
+    const printInProgressRef = useRef(false);
+    const afterPrintHandlerRef = useRef(null);
+    const fallbackTimerRef = useRef(null);
 
     const selectedTemplate = useMemo(
         () =>
             templates.find(
                 (template) =>
-                    getTemplateKey(template) ===
-                    selectedTemplateId
+                    getTemplateKey(template) === selectedTemplateId
             ) ?? null,
         [templates, selectedTemplateId]
     );
@@ -646,6 +635,29 @@ export default function PrintCoordinatorModal({
             coordinator
         );
     }, [selectedTemplate, coordinator]);
+
+    const clearPrintResources = useCallback(() => {
+        if (fallbackTimerRef.current) {
+            window.clearTimeout(fallbackTimerRef.current);
+            fallbackTimerRef.current = null;
+        }
+
+        if (afterPrintHandlerRef.current) {
+            window.removeEventListener(
+                "afterprint",
+                afterPrintHandlerRef.current
+            );
+
+            afterPrintHandlerRef.current = null;
+        }
+
+        document
+            .getElementById("temporary-coordinator-print")
+            ?.remove();
+
+        printInProgressRef.current = false;
+        setPrintBusy(false);
+    }, []);
 
     const loadTemplates = useCallback(async () => {
         setLoading(true);
@@ -714,6 +726,8 @@ export default function PrintCoordinatorModal({
                         ? currentId
                         : getTemplateKey(normalized[0]);
                 });
+
+                setError("");
             } else {
                 setSelectedTemplateId("");
                 setError("لا توجد تصميمات محفوظة.");
@@ -737,18 +751,12 @@ export default function PrintCoordinatorModal({
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (
-                event.key === "Escape" &&
-                !printBusy
-            ) {
+            if (event.key === "Escape" && !printBusy) {
                 onClose();
             }
         };
 
-        window.addEventListener(
-            "keydown",
-            handleKeyDown
-        );
+        window.addEventListener("keydown", handleKeyDown);
 
         return () => {
             window.removeEventListener(
@@ -758,7 +766,24 @@ export default function PrintCoordinatorModal({
         };
     }, [onClose, printBusy]);
 
+    useEffect(() => {
+        return () => {
+            if (fallbackTimerRef.current) {
+                window.clearTimeout(fallbackTimerRef.current);
+            }
 
+            if (afterPrintHandlerRef.current) {
+                window.removeEventListener(
+                    "afterprint",
+                    afterPrintHandlerRef.current
+                );
+            }
+
+            document
+                .getElementById("temporary-coordinator-print")
+                ?.remove();
+        };
+    }, []);
 
     const previewScale = useMemo(() => {
         if (!previewTemplate) {
@@ -785,79 +810,290 @@ export default function PrintCoordinatorModal({
         );
     }, [previewTemplate]);
 
+    /* ---------------------------------------------------
+       Log a print using the selected print type.
 
+       The backend must determine created_by from req.user.code.
+       Do not send created_by from the frontend.
+    --------------------------------------------------- */
 
-const handlePrint = async () => {
-    if (!previewTemplate || !printAreaRef.current || printBusy) {
-        return;
-    }
+    const savePrintLog = useCallback(async () => {
+        if (!coordinator?.code) {
+            throw new Error(
+                "كود المندوب أو المنسق غير موجود."
+            );
+        }
 
-    setPrintBusy(true);
-    setError("");
-
-    let printContainer;
-    let cleanup;
-
-    try {
-        const originalCard = printAreaRef.current.querySelector(
-            ".coordinator-print-card"
+        const response = await sendHttpReq(
+            PRINT_LOG_ENDPOINT,
+            "POST",
+            {
+                code: String(coordinator.code),
+                name: String(coordinator.name ?? ""),
+                type: printType,
+            }
         );
 
-        if (!originalCard) {
-            throw new Error("لم يتم العثور على تصميم البطاقة.");
+        const result =
+            typeof response?.json === "function"
+                ? await response.json()
+                : response;
+
+        if (
+            response &&
+            typeof response.status === "number" &&
+            response.ok === false
+        ) {
+            throw new Error(
+                result?.message ??
+                "تعذر تسجيل عملية الطباعة."
+            );
         }
 
-        // Clone the card so React's original DOM is not moved.
-        const printCard = originalCard.cloneNode(true);
-
-        printContainer = document.createElement("div");
-        printContainer.id = "temporary-coordinator-print";
-
-        Object.assign(printContainer.style, {
-            width: `${previewTemplate.width}px`,
-            height: `${previewTemplate.height}px`,
-        });
-
-        printContainer.appendChild(printCard);
-        document.body.appendChild(printContainer);
-
-        await waitForImages(printContainer);
-
-        if (document.fonts?.ready) {
-            await document.fonts.ready;
+        if (result?.success === false) {
+            throw new Error(
+                result?.message ??
+                "تعذر تسجيل عملية الطباعة."
+            );
         }
 
-        await new Promise((resolve) => {
-            requestAnimationFrame(() => {
-                requestAnimationFrame(resolve);
-            });
-        });
+        return result;
+    }, [coordinator, printType]);
 
-        cleanup = () => {
+    /* ---------------------------------------------------
+       Print handler
+    --------------------------------------------------- */
+
+    const handlePrint = async () => {
+        if (
+            !previewTemplate ||
+            !printAreaRef.current ||
+            printInProgressRef.current
+        ) {
+            return;
+        }
+
+        if (!PRINT_TYPES.some((item) => item.value === printType)) {
+            setError("اختر نوع الطباعة.");
+            return;
+        }
+
+        if (!coordinator?.code) {
+            setError("كود المندوب أو المنسق غير موجود.");
+            return;
+        }
+
+        printInProgressRef.current = true;
+        setPrintBusy(true);
+        setError("");
+
+        let printContainer = null;
+        let printFinished = false;
+
+        const finishPrint = () => {
+            if (printFinished) return;
+
+            printFinished = true;
+
+            if (fallbackTimerRef.current) {
+                window.clearTimeout(fallbackTimerRef.current);
+                fallbackTimerRef.current = null;
+            }
+
+            if (afterPrintHandlerRef.current) {
+                window.removeEventListener(
+                    "afterprint",
+                    afterPrintHandlerRef.current
+                );
+
+                afterPrintHandlerRef.current = null;
+            }
+
             printContainer?.remove();
             printContainer = null;
-            window.removeEventListener("afterprint", cleanup);
+
+            printInProgressRef.current = false;
             setPrintBusy(false);
         };
 
-        window.addEventListener("afterprint", cleanup, {
-            once: true,
-        });
+        const handleAfterPrint = async () => {
+            if (printFinished) return;
 
-        window.print();
-    } catch (err) {
-        cleanup?.();
+            if (afterPrintHandlerRef.current) {
+                window.removeEventListener(
+                    "afterprint",
+                    afterPrintHandlerRef.current
+                );
 
-        printContainer?.remove();
+                afterPrintHandlerRef.current = null;
+            }
 
-        setPrintBusy(false);
-        setError(
-            err?.message ?? "تعذر تجهيز البطاقة للطباعة."
-        );
+            if (fallbackTimerRef.current) {
+                window.clearTimeout(fallbackTimerRef.current);
+                fallbackTimerRef.current = null;
+            }
+
+            try {
+                const confirmed = window.confirm(
+                    "هل تمت طباعة البطاقة بنجاح؟"
+                );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                await savePrintLog();
+
+                setError("");
+                window.alert("تم تسجيل عملية الطباعة بنجاح.");
+            } catch (err) {
+                setError(
+                    err?.message ??
+                    "حدث خطأ أثناء تسجيل عملية الطباعة."
+                );
+            } finally {
+                finishPrint();
+            }
+        };
+
+        try {
+            const originalCard =
+                printAreaRef.current.querySelector(
+                    ".coordinator-print-card"
+                );
+
+            if (!originalCard) {
+                throw new Error(
+                    "لم يتم العثور على تصميم البطاقة."
+                );
+            }
+
+            // Clone the card without moving React's original DOM.
+            printContainer = document.createElement("div");
+            printContainer.id = "temporary-coordinator-print";
+
+
+            Object.assign(printContainer.style, {
+                position: "fixed",
+                left: "-100000px",
+                top: "0",
+                width: `${previewTemplate.width}px`,
+                height: `${previewTemplate.height}px`,
+                margin: "0",
+                padding: "0",
+                background: "#ffffff",
+                zIndex: "-1",
+            });
+
+
+            printContainer.appendChild(
+                originalCard.cloneNode(true)
+            );
+
+            // Hide the application UI only while printing.
+            const printStyle = document.createElement("style");
+
+            printStyle.id = "temporary-coordinator-print-style";
+
+            printStyle.textContent = `
+    @page {
+        size: auto;
+        margin: 0;
     }
-};
 
+    @media print {
+        html,
+        body {
+            width: 100% !important;
+            min-height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
 
+        body * {
+            visibility: hidden !important;
+        }
+
+        #temporary-coordinator-print,
+        #temporary-coordinator-print * {
+            visibility: visible !important;
+        }
+
+        #temporary-coordinator-print {
+            position: fixed !important;
+            inset: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+            background: white !important;
+        }
+
+        #temporary-coordinator-print .coordinator-print-card {
+            position: relative !important;
+            flex: 0 0 auto !important;
+            margin: 0 !important;
+            transform: none !important;
+            box-shadow: none !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
+        }
+    }
+`;
+
+            document.head.appendChild(printStyle);
+            document.body.appendChild(printContainer);
+
+            await waitForImages(printContainer);
+
+            if (document.fonts?.ready) {
+                await document.fonts.ready;
+            }
+
+            await new Promise((resolve) => {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(resolve);
+                });
+            });
+
+            afterPrintHandlerRef.current = handleAfterPrint;
+
+            window.addEventListener(
+                "afterprint",
+                handleAfterPrint,
+                { once: true }
+            );
+
+            window.print();
+
+            // Fallback: prevent the UI from remaining locked forever
+            // if the browser does not fire afterprint.
+            fallbackTimerRef.current = window.setTimeout(() => {
+                if (!printFinished) {
+                    finishPrint();
+                }
+            }, 120000);
+        } catch (err) {
+            finishPrint();
+
+            setError(
+                err?.message ??
+                "تعذر تجهيز البطاقة للطباعة."
+            );
+        }
+    };
+
+    /* ---------------------------------------------------
+       Render
+    --------------------------------------------------- */
 
     return (
         <>
@@ -900,6 +1136,7 @@ const handlePrint = async () => {
                     </header>
 
                     <div className="space-y-5 p-5">
+                        {/* Coordinator information */}
                         <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
                             <p className="font-semibold text-slate-800">
                                 {coordinator?.name ?? "—"}
@@ -907,12 +1144,14 @@ const handlePrint = async () => {
 
                             <p className="mt-1 text-sm text-slate-600">
                                 الكود: {coordinator?.code ?? "—"}
+
                                 {coordinator?.job
                                     ? ` — ${coordinator.job}`
                                     : ""}
                             </p>
                         </div>
 
+                        {/* Loading state */}
                         {loading ? (
                             <p className="py-10 text-center text-slate-500">
                                 جارٍ تحميل التصميمات...
@@ -931,6 +1170,7 @@ const handlePrint = async () => {
                             </div>
                         ) : (
                             <>
+                                {/* Template selector */}
                                 <div className="space-y-2">
                                     <label
                                         htmlFor="print-template-select"
@@ -942,13 +1182,15 @@ const handlePrint = async () => {
                                     <select
                                         id="print-template-select"
                                         value={selectedTemplateId}
+                                        disabled={printBusy}
                                         onChange={(event) => {
                                             setSelectedTemplateId(
                                                 event.target.value
                                             );
+
                                             setError("");
                                         }}
-                                        className="w-full rounded-lg border border-slate-300 bg-white p-3"
+                                        className="w-full rounded-lg border border-slate-300 bg-white p-3 disabled:bg-slate-100"
                                     >
                                         {templates.map((template) => (
                                             <option
@@ -961,6 +1203,7 @@ const handlePrint = async () => {
                                     </select>
                                 </div>
 
+                                {/* Card preview */}
                                 <h3 className="font-semibold text-slate-700">
                                     معاينة البطاقة
                                 </h3>
@@ -975,6 +1218,40 @@ const handlePrint = async () => {
                                     </div>
                                 )}
 
+                                {/* Print type selector */}
+                                <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                                    <label
+                                        htmlFor="print-type"
+                                        className="mb-2 block font-semibold text-slate-800"
+                                    >
+                                        نوع الطباعة
+                                    </label>
+
+                                    <select
+                                        id="print-type"
+                                        value={printType}
+                                        disabled={printBusy}
+                                        onChange={(event) => {
+                                            setPrintType(
+                                                event.target.value
+                                            );
+
+                                            setError("");
+                                        }}
+                                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-100"
+                                    >
+                                        {PRINT_TYPES.map((type) => (
+                                            <option
+                                                key={type.value}
+                                                value={type.value}
+                                            >
+                                                {type.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Error message */}
                                 {error && (
                                     <p
                                         role="alert"
@@ -984,6 +1261,7 @@ const handlePrint = async () => {
                                     </p>
                                 )}
 
+                                {/* Action buttons */}
                                 <div className="flex flex-wrap justify-end gap-3 border-t pt-4">
                                     <button
                                         type="button"
@@ -1014,7 +1292,7 @@ const handlePrint = async () => {
                 </section>
             </div>
 
-            {/* Hidden source used to create the separate print document. */}
+            {/* Hidden card source used for printing */}
             {previewTemplate && (
                 <div
                     ref={printAreaRef}

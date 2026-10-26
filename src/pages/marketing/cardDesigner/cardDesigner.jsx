@@ -544,9 +544,9 @@ export default function CardTemplateSettings() {
             const records = Array.isArray(result)
                 ? result
                 : result?.templates ??
-                  result?.data?.templates ??
-                  result?.data ??
-                  [];
+                result?.data?.templates ??
+                result?.data ??
+                [];
 
             if (!Array.isArray(records)) {
                 throw new Error(
@@ -637,15 +637,15 @@ export default function CardTemplateSettings() {
             if (result?.success === false || result?.error) {
                 throw new Error(
                     result?.message ??
-                        result?.error ??
-                        "تعذر جلب بيانات الموظف."
+                    result?.error ??
+                    "تعذر جلب بيانات الموظف."
                 );
             }
 
             if (!coordinator || coordinator.code == null) {
                 throw new Error(
                     result?.message ??
-                        "لم يتم العثور على المندوب أو المنسق بهذا الكود."
+                    "لم يتم العثور على المندوب أو المنسق بهذا الكود."
                 );
             }
 
@@ -778,11 +778,12 @@ export default function CardTemplateSettings() {
             printContainer = document.createElement("div");
             printContainer.id = "temporary-coordinator-print";
 
+
             Object.assign(printContainer.style, {
-                display: "block",
-                position: "absolute",
+                display: "none",
+                position: "fixed",
+                left: "-100000px",
                 top: "0",
-                left: "0",
                 width: `${width}px`,
                 height: `${height}px`,
                 margin: "0",
@@ -790,6 +791,7 @@ export default function CardTemplateSettings() {
                 overflow: "hidden",
                 background: "#ffffff",
             });
+
 
             const cardClone = sourceCard.cloneNode(true);
 
@@ -831,7 +833,7 @@ export default function CardTemplateSettings() {
                             img.naturalWidth > 0 &&
                             typeof img.decode === "function"
                         ) {
-                            await img.decode().catch(() => {});
+                            await img.decode().catch(() => { });
                         }
                     })
                 ),
@@ -932,23 +934,23 @@ export default function CardTemplateSettings() {
                 const width =
                     canvasResize.axis === "width"
                         ? Math.max(
-                              100,
-                              Math.min(
-                                  3000,
-                                  Math.round(canvasResize.startWidth + deltaX)
-                              )
-                          )
+                            100,
+                            Math.min(
+                                3000,
+                                Math.round(canvasResize.startWidth + deltaX)
+                            )
+                        )
                         : current.width;
 
                 const height =
                     canvasResize.axis === "height"
                         ? Math.max(
-                              100,
-                              Math.min(
-                                  3000,
-                                  Math.round(canvasResize.startHeight + deltaY)
-                              )
-                          )
+                            100,
+                            Math.min(
+                                3000,
+                                Math.round(canvasResize.startHeight + deltaY)
+                            )
+                        )
                         : current.height;
 
                 return {
@@ -1234,15 +1236,15 @@ export default function CardTemplateSettings() {
                                                     (savedTemplate, index) => {
                                                         const scale = Math.min(
                                                             220 /
-                                                                savedTemplate
-                                                                    .design
-                                                                    .canvas
-                                                                    .width,
+                                                            savedTemplate
+                                                                .design
+                                                                .canvas
+                                                                .width,
                                                             150 /
-                                                                savedTemplate
-                                                                    .design
-                                                                    .canvas
-                                                                    .height
+                                                            savedTemplate
+                                                                .design
+                                                                .canvas
+                                                                .height
                                                         );
 
                                                         return (
@@ -1453,24 +1455,23 @@ export default function CardTemplateSettings() {
                                                         transform: `scale(${Math.min(
                                                             1,
                                                             800 /
-                                                                printDesign
-                                                                    .canvas
-                                                                    .width
+                                                            printDesign
+                                                                .canvas
+                                                                .width
                                                         )})`,
                                                         transformOrigin:
                                                             "top center",
-                                                        marginBottom: `${
-                                                            printDesign.canvas
+                                                        marginBottom: `${printDesign.canvas
                                                                 .height *
                                                             (Math.min(
                                                                 1,
                                                                 800 /
-                                                                    printDesign
-                                                                        .canvas
-                                                                        .width
+                                                                printDesign
+                                                                    .canvas
+                                                                    .width
                                                             ) -
                                                                 1)
-                                                        }px`,
+                                                            }px`,
                                                     }}
                                                 >
                                                     <CardArtwork
