@@ -10,7 +10,7 @@ import CoordinatorDetailsModal from "../../../components/coordinators/Coordinato
 import CreateCoordinatorModal from "../../../components/coordinators/CreateCoordinatorModal";
 import CreateExceptionModal from "../../../components/coordinators/CreateExceptionModal";
 import DeleteExceptionModal from "../../../components/coordinators/DeleteExceptionModal";
-
+import PrintCoordinatorModal from "../../../components/coordinators/PrintCoordinatorModal";
 import {
     groupCoordinators,
     normalizeJob,
@@ -30,6 +30,7 @@ export default function CoordinatorsManagement() {
     const [filter, setFilter] = useState("");
 
     const [selectedCoordinator, setSelectedCoordinator] = useState(null);
+    const [coordinatorToPrint, setCoordinatorToPrint] = useState(null);
 
     const [createCoordinatorOpen, setCreateCoordinatorOpen] = useState(false);
     const [createExceptionOpen, setCreateExceptionOpen] = useState(false);
@@ -328,6 +329,7 @@ export default function CoordinatorsManagement() {
                     coordinators={filteredCoordinators}
                     loading={loading}
                     onSelectCoordinator={setSelectedCoordinator}
+                    onPrintCoordinator={setCoordinatorToPrint}
                 />
 
                 <CreateCoordinatorModal
@@ -359,6 +361,12 @@ export default function CoordinatorsManagement() {
                     onSave={handleUpdateCoordinator}
                     saving={saving}
                 />
+                {coordinatorToPrint && (
+                    <PrintCoordinatorModal
+                        coordinator={coordinatorToPrint}
+                        onClose={() => setCoordinatorToPrint(null)}
+                    />
+                )}
             </main>
         </div>
     );
