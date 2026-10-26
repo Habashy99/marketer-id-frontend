@@ -1,12 +1,17 @@
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import Header from "../../../components/header";
 import { sendHttpReq } from "../../../lib/httpHandler";
+
 import CanvasSettings from "./CanvasSettings";
 import CardPreview from "./CardPreview";
 import ElementList from "./ElementList";
 import ElementProperties from "./ElementProperties";
 import TemplateToolbar from "./TemplateToolbar";
+
+const TEMPLATES_ENDPOINT = "card-templates";
+const COORDINATOR_ENDPOINT = "coordinators/by-code";
 
 const DEFAULT_SPACING = {
     top: 10,
@@ -33,16 +38,14 @@ const ELEMENT_TYPES = [
 const SAMPLE_VALUES = {
     name: "اسم الموظف",
     company_name: "جملة ماركت",
-    date: "2026-10-25",
+    date: new Date().toLocaleDateString("en-CA"),
     code: "1001",
     national_id_number: "00000000000000",
     job: "مندوب",
 };
 
 function createElement(type) {
-    const definition = ELEMENT_TYPES.find(
-        (item) => item.type === type
-    );
+    const definition = ELEMENT_TYPES.find((item) => item.type === type);
 
     if (!definition) {
         throw new Error(`Unknown element type: ${type}`);
@@ -88,40 +91,259 @@ const DEFAULT_TEMPLATE = {
     ],
 };
 
-export default function CardTemplateSettings() {
-    const [template, setTemplate] = useState(() => ({
+function cloneDefaultTemplate() {
+    return {
         ...DEFAULT_TEMPLATE,
         margins: { ...DEFAULT_TEMPLATE.margins },
         padding: { ...DEFAULT_TEMPLATE.padding },
         elements: DEFAULT_TEMPLATE.elements.map((element) => ({
             ...element,
+            id: crypto.randomUUID(),
         })),
-    }));
+    };
+}
 
+function getErrorMessage(error, fallback) {
+    return error?.message || fallback;
+}
+
+function normalizeDesign(record) {
+    const rawDesign = record?.design ?? record?.template ?? record;
+
+    // Some APIs return the design as a JSON string.
+    let design = rawDesign;
+
+    if (typeof design === "string") {
+        try {
+            design = JSON.parse(design);
+        } catch {
+            throw new Error("بيانات تصميم البطاقة المحفوظ غير صحيحة.");
+        }
+    }
+
+    const canvas = design?.canvas ?? {};
+    const width = Number(canvas.width ?? design?.width ?? 856);
+    const height = Number(canvas.height ?? design?.height ?? 540);
+    const elements = design?.elements;
+
+    if (
+        !Number.isFinite(width) ||
+        !Number.isFinite(height) ||
+        width <= 0 ||
+        height <= 0 ||
+        !Array.isArray(elements)
+    ) {
+        throw new Error("تصميم البطاقة لا يحتوي على بيانات صحيحة.");
+    }
+
+    return {
+        id: record?.id ?? record?.template_id ?? record?.card_template_id,
+        name: record?.name ?? design?.name ?? "تصميم بطاقة",
+        design: {
+            ...design,
+            canvas: {
+                ...canvas,
+                width,
+                height,
+                background: canvas.background ?? "#ffffff",
+            },
+            margins: design?.margins ?? { ...DEFAULT_SPACING },
+            padding: design?.padding ?? {
+                top: 15,
+                right: 15,
+                bottom: 15,
+                left: 15,
+            },
+            elements: elements.map((element, index) => ({
+                ...element,
+                id: element.id ?? `saved-element-${index}`,
+                x: Number(element.x ?? 0),
+                y: Number(element.y ?? 0),
+                width: Number(element.width ?? 100),
+                height: Number(element.height ?? 30),
+                fontSize: Number(element.fontSize ?? 18),
+                color: element.color ?? "#000000",
+            })),
+        },
+    };
+}
+
+function getCoordinatorValue(coordinator, type) {
+    const values = {
+        name: coordinator?.name,
+        company_name: coordinator?.company_name,
+        code: coordinator?.code,
+        job: coordinator?.job,
+        national_id_number: coordinator?.national_id_number,
+        date: new Date().toLocaleDateString("en-CA"),
+    };
+
+    if (Object.prototype.hasOwnProperty.call(values, type)) {
+        return values[type] ?? "";
+    }
+
+    return "";
+}
+
+
+function getPhotoUrl(coordinator) {
+    const photoPath =
+        coordinator?.profile_picture ??
+        coordinator?.profile_picture_path ??
+        coordinator?.profilePicture ??
+        coordinator?.picture ??
+        "";
+
+    if (!photoPath) return "";
+
+    // The image is already a complete URL.
+    if (/^https?:\/\//i.test(photoPath)) {
+        return photoPath;
+    }
+
+    // Request the image through your backend's Nextcloud proxy.
+    return `http://localhost:3000/coordinators/photo?path=${encodeURIComponent(
+        String(photoPath).replace(/\\/g, "/")
+    )}`;
+}
+
+
+function CardArtwork({ design, coordinator }) {
+    const canvas = design?.canvas ?? {};
+    const elements = Array.isArray(design?.elements)
+        ? design.elements
+        : [];
+
+    const width = Number(canvas.width ?? 856);
+    const height = Number(canvas.height ?? 540);
+    const background = canvas.background ?? "#ffffff";
+    const photoUrl = getPhotoUrl(coordinator);
+
+    return (
+        <div
+            className="card-artwork"
+            dir="rtl"
+            style={{
+                position: "relative",
+                width: `${width}px`,
+                height: `${height}px`,
+                maxWidth: "none",
+                overflow: "hidden",
+                background,
+                fontFamily: "Arial, sans-serif",
+                printColorAdjust: "exact",
+                WebkitPrintColorAdjust: "exact",
+            }}
+        >
+            {elements.map((element, index) => {
+                const isPhoto = element.type === "photo";
+                const value = getCoordinatorValue(coordinator, element.type);
+                const displayedValue =
+                    value !== "" ? value : element.value ?? "";
+
+                return (
+                    <div
+                        key={element.id ?? index}
+                        style={{
+                            position: "absolute",
+                            left: `${element.x}px`,
+                            top: `${element.y}px`,
+                            width: `${element.width}px`,
+                            height: `${element.height}px`,
+                            boxSizing: "border-box",
+                            overflow: "hidden",
+                            color: element.color ?? "#000000",
+                            fontSize: `${element.fontSize ?? 18}px`,
+                            fontFamily: element.fontFamily ?? "Arial, sans-serif",
+                            fontWeight: element.fontWeight ?? "normal",
+                            textAlign: element.textAlign ?? "right",
+                            lineHeight: 1.3,
+                            whiteSpace: "pre-wrap",
+                            overflowWrap: "anywhere",
+                            padding: "2px",
+                        }}
+                    >
+                        {isPhoto ? (
+                            photoUrl ? (
+                                <img
+                                    src={getPhotoUrl(coordinator)}
+                                    alt="Coordinator"
+                                    crossOrigin="use-credentials"
+                                    onError={(event) => {
+                                        console.error("Failed to load coordinator photo:", event.currentTarget.src);
+                                    }}
+                                />
+                            ) : (
+                                <div
+                                    style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        border: "1px solid #ccc",
+                                        fontSize: "14px",
+                                    }}
+                                >
+                                    لا توجد صورة
+                                </div>
+                            )
+                        ) : (
+                            displayedValue
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+export default function CardTemplateSettings() {
+    const [template, setTemplate] = useState(cloneDefaultTemplate);
     const [selectedId, setSelectedId] = useState(
         DEFAULT_TEMPLATE.elements[1].id
     );
+
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
     const [drag, setDrag] = useState(null);
     const [canvasResize, setCanvasResize] = useState(null);
 
-    const selectedElement =
-        template.elements.find(
-            (element) => element.id === selectedId
-        ) ?? null;
+    // Print modal state.
+    const [printModalOpen, setPrintModalOpen] = useState(false);
+    const [printStep, setPrintStep] = useState("designs");
+    const [savedTemplates, setSavedTemplates] = useState([]);
+    const [selectedPrintTemplate, setSelectedPrintTemplate] = useState(null);
+    const [coordinatorCode, setCoordinatorCode] = useState("");
+    const [printCoordinator, setPrintCoordinator] = useState(null);
+    const [templatesLoading, setTemplatesLoading] = useState(false);
+    const [printBusy, setPrintBusy] = useState(false);
+    const [templatesError, setTemplatesError] = useState("");
+    const [printError, setPrintError] = useState("");
 
-    const updateTemplate = (key, value) => {
+    const printAreaRef = useRef(null);
+    const modalCodeInputRef = useRef(null);
+
+    const selectedElement = useMemo(
+        () =>
+            template.elements.find((element) => element.id === selectedId) ??
+            null,
+        [template.elements, selectedId]
+    );
+
+    const printDesign = selectedPrintTemplate?.design ?? null;
+
+    const updateTemplate = useCallback((key, value) => {
         setTemplate((current) => ({
             ...current,
             [key]: value,
         }));
         setError("");
         setNotice("");
-    };
+    }, []);
 
-    const updateSpacing = (group, key, value) => {
+    const updateSpacing = useCallback((group, key, value) => {
         setTemplate((current) => ({
             ...current,
             [group]: {
@@ -129,20 +351,23 @@ export default function CardTemplateSettings() {
                 [key]: value,
             },
         }));
-    };
+    }, []);
 
-    const updateElement = (key, value) => {
-        setTemplate((current) => ({
-            ...current,
-            elements: current.elements.map((element) =>
-                element.id === selectedId
-                    ? { ...element, [key]: value }
-                    : element
-            ),
-        }));
-    };
+    const updateElement = useCallback(
+        (key, value) => {
+            setTemplate((current) => ({
+                ...current,
+                elements: current.elements.map((element) =>
+                    element.id === selectedId
+                        ? { ...element, [key]: value }
+                        : element
+                ),
+            }));
+        },
+        [selectedId]
+    );
 
-    const changeOrientation = (orientation) => {
+    const changeOrientation = useCallback((orientation) => {
         const width = orientation === "horizontal" ? 856 : 540;
         const height = orientation === "horizontal" ? 540 : 856;
 
@@ -162,35 +387,34 @@ export default function CardTemplateSettings() {
                 ),
             })),
         }));
-    };
+    }, []);
 
-    const addElement = (type) => {
-        const existingElement = template.elements.find(
-            (element) => element.type === type
-        );
+    const addElement = useCallback(
+        (type) => {
+            const existingElement = template.elements.find(
+                (element) => element.type === type
+            );
 
-        if (existingElement) {
-            setSelectedId(existingElement.id);
-            return;
-        }
+            if (existingElement) {
+                setSelectedId(existingElement.id);
+                return;
+            }
 
-        const element = createElement(type);
+            const element = createElement(type);
 
-        setTemplate((current) => ({
-            ...current,
-            elements: current.elements.some(
-                (item) => item.type === type
-            )
-                ? current.elements
-                : [...current.elements, element],
-        }));
+            setTemplate((current) => ({
+                ...current,
+                elements: [...current.elements, element],
+            }));
 
-        setSelectedId(element.id);
-        setError("");
-        setNotice("");
-    };
+            setSelectedId(element.id);
+            setError("");
+            setNotice("");
+        },
+        [template.elements]
+    );
 
-    const removeElement = () => {
+    const removeElement = useCallback(() => {
         if (!selectedElement) return;
 
         const remainingElements = template.elements.filter(
@@ -207,28 +431,29 @@ export default function CardTemplateSettings() {
         setSelectedId(remainingElements[0]?.id ?? "");
         setError("");
         setNotice("");
-    };
+    }, [selectedElement, selectedId, template.elements]);
 
-    const createTemplatePayload = () => ({
-        name: template.name.trim(),
-        design: {
-            version: 1,
-            orientation:
-                template.width >= template.height
-                    ? "horizontal"
-                    : "vertical",
-            canvas: {
-                width: template.width,
-                height: template.height,
-                background: "#ffffff",
+    const createTemplatePayload = useCallback(
+        () => ({
+            name: template.name.trim(),
+            design: {
+                version: 1,
+                orientation:
+                    template.width >= template.height
+                        ? "horizontal"
+                        : "vertical",
+                canvas: {
+                    width: template.width,
+                    height: template.height,
+                    background: "#ffffff",
+                },
+                margins: template.margins,
+                padding: template.padding,
+                elements: template.elements.map(({ id, ...element }) => element),
             },
-            margins: template.margins,
-            padding: template.padding,
-            elements: template.elements.map(
-                ({ id, ...element }) => element
-            ),
-        },
-    });
+        }),
+        [template]
+    );
 
     const saveTemplate = async () => {
         if (!template.name.trim()) {
@@ -242,36 +467,182 @@ export default function CardTemplateSettings() {
 
         try {
             await sendHttpReq(
-                "card-templates",
+                "card-templates/save",
                 "POST",
                 createTemplatePayload()
             );
             setNotice("تم حفظ القالب بنجاح.");
         } catch (err) {
-            setError(err?.message || "تعذر حفظ القالب.");
+            setError(getErrorMessage(err, "تعذر حفظ القالب."));
         } finally {
             setBusy(false);
         }
     };
 
-    const downloadJson = () => {
-        const blob = new Blob(
-            [JSON.stringify(createTemplatePayload(), null, 2)],
-            { type: "application/json;charset=utf-8" }
-        );
+    const openPrintModal = async () => {
+        setPrintModalOpen(true);
+        setPrintStep("designs");
+        setSelectedPrintTemplate(null);
+        setCoordinatorCode("");
+        setPrintCoordinator(null);
+        setTemplatesError("");
+        setPrintError("");
+        setTemplatesLoading(true);
 
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
+        try {
+            // Assumes GET /card-templates returns an array or { templates: [] }.
+            const result = await sendHttpReq(TEMPLATES_ENDPOINT);
 
-        link.href = url;
-        link.download = `${template.name || "employee-card"}.json`;
-        link.click();
+            const records = Array.isArray(result)
+                ? result
+                : result?.templates ??
+                result?.data?.templates ??
+                result?.data ??
+                [];
 
-        URL.revokeObjectURL(url);
+            if (!Array.isArray(records)) {
+                throw new Error("تنسيق بيانات القوالب المستلمة غير صحيح.");
+            }
+
+            const normalizedTemplates = records.map(normalizeDesign);
+            setSavedTemplates(normalizedTemplates);
+
+            if (normalizedTemplates.length === 0) {
+                setTemplatesError("لا توجد تصميمات محفوظة في قاعدة البيانات.");
+            }
+        } catch (err) {
+            setSavedTemplates([]);
+            setTemplatesError(
+                getErrorMessage(
+                    err,
+                    "تعذر تحميل التصميمات المحفوظة. تحقق من مسار API."
+                )
+            );
+        } finally {
+            setTemplatesLoading(false);
+        }
     };
 
-    const handlePrint = () => {
-        window.print();
+    const closePrintModal = () => {
+        if (printBusy) return;
+
+        setPrintModalOpen(false);
+        setPrintStep("designs");
+        setSelectedPrintTemplate(null);
+        setCoordinatorCode("");
+        setPrintCoordinator(null);
+        setPrintError("");
+        setTemplatesError("");
+    };
+
+    const selectPrintTemplate = (savedTemplate) => {
+        setSelectedPrintTemplate(savedTemplate);
+        setCoordinatorCode("");
+        setPrintCoordinator(null);
+        setPrintError("");
+        setPrintStep("code");
+
+        window.setTimeout(() => {
+            modalCodeInputRef.current?.focus();
+        }, 0);
+    };
+
+    const findCoordinator = async (event) => {
+        event?.preventDefault();
+
+        const normalizedCode = coordinatorCode.trim();
+
+        if (!normalizedCode) {
+            setPrintError("أدخل كود المندوب أو المنسق.");
+            return;
+        }
+
+        if (!/^\d+$/.test(normalizedCode) || Number(normalizedCode) <= 0) {
+            setPrintError("يرجى إدخال كود صحيح.");
+            return;
+        }
+
+        setPrintBusy(true);
+        setPrintError("");
+        setPrintCoordinator(null);
+
+        try {
+            // sendHttpReq returns parsed JSON; do not call response.json().
+            const result = await sendHttpReq(
+                `${COORDINATOR_ENDPOINT}/${encodeURIComponent(normalizedCode)}`
+            );
+
+            const coordinator =
+                result?.coordinator ??
+                result?.data?.coordinator ??
+                result?.data ??
+                null;
+
+            if (result?.success === false || result?.error) {
+                throw new Error(
+                    result?.message ?? result?.error ?? "تعذر جلب بيانات الموظف."
+                );
+            }
+
+            if (!coordinator || !coordinator.code) {
+                throw new Error(
+                    result?.message ??
+                    "لم يتم العثور على المندوب أو المنسق بهذا الكود."
+                );
+            }
+
+            setPrintCoordinator(coordinator);
+            setPrintStep("preview");
+        } catch (err) {
+            setPrintError(
+                getErrorMessage(
+                    err,
+                    "حدث خطأ أثناء جلب بيانات المندوب أو المنسق."
+                )
+            );
+        } finally {
+            setPrintBusy(false);
+        }
+    };
+
+    const handleManualPrint = async () => {
+        if (!printCoordinator || !printDesign) {
+            setPrintError("اختر تصميمًا وأدخل كود الموظف أولًا.");
+            return;
+        }
+
+        setPrintBusy(true);
+        setPrintError("");
+
+        try {
+            const images = Array.from(
+                printAreaRef.current?.querySelectorAll("img") ?? []
+            );
+
+            await Promise.all(
+                images.map((img) => {
+                    if (img.complete) {
+                        return typeof img.decode === "function"
+                            ? img.decode().catch(() => undefined)
+                            : Promise.resolve();
+                    }
+
+                    return new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                    });
+                })
+            );
+
+            // Printing happens only when the user clicks this button.
+            window.print();
+        } catch (err) {
+            setPrintError(
+                getErrorMessage(err, "تعذر تجهيز البطاقة للطباعة.")
+            );
+        } finally {
+            setPrintBusy(false);
+        }
     };
 
     const previewScale = Math.min(1, 800 / template.width);
@@ -281,10 +652,8 @@ export default function CardTemplateSettings() {
         if (!drag) return;
 
         const handleMouseMove = (event) => {
-            const deltaX =
-                (event.clientX - drag.startX) / drag.scale;
-            const deltaY =
-                (event.clientY - drag.startY) / drag.scale;
+            const deltaX = (event.clientX - drag.startX) / drag.scale;
+            const deltaY = (event.clientY - drag.startY) / drag.scale;
 
             const x = Math.round(
                 Math.max(
@@ -309,9 +678,7 @@ export default function CardTemplateSettings() {
             setTemplate((current) => ({
                 ...current,
                 elements: current.elements.map((element) =>
-                    element.id === drag.id
-                        ? { ...element, x, y }
-                        : element
+                    element.id === drag.id ? { ...element, x, y } : element
                 ),
             }));
         };
@@ -333,37 +700,31 @@ export default function CardTemplateSettings() {
 
         const handleMouseMove = (event) => {
             const deltaX =
-                (event.clientX - canvasResize.startX) /
-                canvasResize.scale;
+                (event.clientX - canvasResize.startX) / canvasResize.scale;
             const deltaY =
-                (event.clientY - canvasResize.startY) /
-                canvasResize.scale;
+                (event.clientY - canvasResize.startY) / canvasResize.scale;
 
             setTemplate((current) => {
                 const width =
                     canvasResize.axis === "width"
                         ? Math.max(
-                              100,
-                              Math.min(
-                                  3000,
-                                  Math.round(
-                                      canvasResize.startWidth + deltaX
-                                  )
-                              )
-                          )
+                            100,
+                            Math.min(
+                                3000,
+                                Math.round(canvasResize.startWidth + deltaX)
+                            )
+                        )
                         : current.width;
 
                 const height =
                     canvasResize.axis === "height"
                         ? Math.max(
-                              100,
-                              Math.min(
-                                  3000,
-                                  Math.round(
-                                      canvasResize.startHeight + deltaY
-                                  )
-                              )
-                          )
+                            100,
+                            Math.min(
+                                3000,
+                                Math.round(canvasResize.startHeight + deltaY)
+                            )
+                        )
                         : current.height;
 
                 return {
@@ -412,29 +773,23 @@ export default function CardTemplateSettings() {
                 "ArrowDown",
             ];
 
-            if (!arrowKeys.includes(event.key)) return;
-            if (!selectedId) return;
+            if (!arrowKeys.includes(event.key) || !selectedId) return;
 
-            // Don't intercept arrow keys while editing form fields.
             const target = event.target;
 
             if (
                 target instanceof HTMLElement &&
-                (
-                    target.isContentEditable ||
+                (target.isContentEditable ||
                     target.closest(
                         'input, textarea, select, [contenteditable="true"]'
-                    )
-                )
+                    ))
             ) {
                 return;
             }
 
-            // Don't move the element while resizing or dragging.
             if (drag || canvasResize) return;
 
             const step = event.shiftKey ? 10 : 1;
-
             const selected = template.elements.find(
                 (element) => element.id === selectedId
             );
@@ -472,23 +827,11 @@ export default function CardTemplateSettings() {
                         ...element,
                         x: Math.max(
                             0,
-                            Math.min(
-                                x,
-                                Math.max(
-                                    0,
-                                    current.width - element.width
-                                )
-                            )
+                            Math.min(x, Math.max(0, current.width - element.width))
                         ),
                         y: Math.max(
                             0,
-                            Math.min(
-                                y,
-                                Math.max(
-                                    0,
-                                    current.height - element.height
-                                )
-                            )
+                            Math.min(y, Math.max(0, current.height - element.height))
                         ),
                     };
                 }),
@@ -500,12 +843,7 @@ export default function CardTemplateSettings() {
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [
-        selectedId,
-        template.elements,
-        drag,
-        canvasResize,
-    ]);
+    }, [selectedId, template.elements, drag, canvasResize]);
 
     return (
         <div className="min-h-screen bg-slate-100">
@@ -518,12 +856,9 @@ export default function CardTemplateSettings() {
                 className="mx-auto max-w-[1700px] p-4 md:p-6"
             >
                 <TemplateToolbar
-                    template={template}
-                    updateTemplate={updateTemplate}
-                    downloadJson={downloadJson}
-                    onPrint={handlePrint}
+                    onPrint={openPrintModal}
                     saveTemplate={saveTemplate}
-                    busy={busy}
+                    busy={busy || printBusy}
                     error={error}
                     notice={notice}
                 />
@@ -564,6 +899,366 @@ export default function CardTemplateSettings() {
                     </aside>
                 </div>
             </main>
+
+            {/* Print modal */}
+            {printModalOpen && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-3 sm:p-6"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            closePrintModal();
+                        }
+                    }}
+                >
+                    <section
+                        dir="rtl"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="print-modal-title"
+                        className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+                    >
+                        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-5 py-4">
+                            <h2
+                                id="print-modal-title"
+                                className="text-xl font-bold text-slate-800"
+                            >
+                                طباعة بطاقة مندوب أو منسق
+                            </h2>
+
+                            <button
+                                type="button"
+                                onClick={closePrintModal}
+                                disabled={printBusy}
+                                aria-label="إغلاق"
+                                className="rounded-lg px-3 py-1 text-2xl text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="space-y-5 p-5">
+                            {printStep !== "designs" && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPrintError("");
+
+                                        if (printStep === "preview") {
+                                            setPrintStep("code");
+                                            setPrintCoordinator(null);
+                                        } else {
+                                            setPrintStep("designs");
+                                            setSelectedPrintTemplate(null);
+                                            setPrintCoordinator(null);
+                                        }
+                                    }}
+                                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+                                >
+                                    ← رجوع
+                                </button>
+                            )}
+
+                            {printStep === "designs" && (
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-slate-700">
+                                        اختر تصميم البطاقة المحفوظ
+                                    </h3>
+
+                                    {templatesLoading && (
+                                        <p className="py-8 text-center text-slate-500">
+                                            جارٍ تحميل التصميمات...
+                                        </p>
+                                    )}
+
+                                    {!templatesLoading && templatesError && (
+                                        <div className="space-y-3 rounded-lg bg-red-50 p-4 text-red-700">
+                                            <p>{templatesError}</p>
+                                            <button
+                                                type="button"
+                                                onClick={openPrintModal}
+                                                className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                                            >
+                                                إعادة المحاولة
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {!templatesLoading &&
+                                        !templatesError &&
+                                        savedTemplates.length > 0 && (
+                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                                {savedTemplates.map((savedTemplate, index) => (
+                                                    <button
+                                                        type="button"
+                                                        key={
+                                                            savedTemplate.id ??
+                                                            `${savedTemplate.name}-${index}`
+                                                        }
+                                                        onClick={() =>
+                                                            selectPrintTemplate(savedTemplate)
+                                                        }
+                                                        className="rounded-xl border border-slate-200 p-4 text-right transition hover:border-orange-500 hover:bg-orange-50"
+                                                    >
+                                                        <div className="mb-3 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                                                            <div
+                                                                style={{
+                                                                    transform: `scale(${Math.min(
+                                                                        220 / savedTemplate.design.canvas.width,
+                                                                        150 / savedTemplate.design.canvas.height
+                                                                    )})`,
+                                                                    transformOrigin: "center",
+                                                                    flexShrink: 0,
+                                                                }}
+                                                            >
+                                                                <CardArtwork
+                                                                    design={savedTemplate.design}
+                                                                    coordinator={null}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <p className="font-semibold text-slate-800">
+                                                            {savedTemplate.name}
+                                                        </p>
+                                                        <p className="mt-1 text-sm text-slate-500">
+                                                            {savedTemplate.design.canvas.width} ×{" "}
+                                                            {savedTemplate.design.canvas.height}
+                                                        </p>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                </div>
+                            )}
+
+                            {printStep === "code" && printDesign && (
+                                <form
+                                    onSubmit={findCoordinator}
+                                    className="mx-auto max-w-xl space-y-4"
+                                >
+                                    <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                                        <p className="font-semibold text-slate-800">
+                                            التصميم المختار: {selectedPrintTemplate.name}
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-600">
+                                            أدخل كود المندوب أو المنسق لعرض البطاقة ببياناته.
+                                        </p>
+                                    </div>
+
+                                    <label
+                                        htmlFor="coordinator-code"
+                                        className="block font-medium text-slate-700"
+                                    >
+                                        كود المندوب أو المنسق
+                                    </label>
+
+                                    <input
+                                        ref={modalCodeInputRef}
+                                        id="coordinator-code"
+                                        type="text"
+                                        inputMode="numeric"
+                                        autoComplete="off"
+                                        value={coordinatorCode}
+                                        onChange={(event) => {
+                                            setCoordinatorCode(event.target.value);
+                                            setPrintError("");
+                                        }}
+                                        placeholder="أدخل الكود"
+                                        className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                                    />
+
+                                    {printError && (
+                                        <p role="alert" className="text-sm text-red-600">
+                                            {printError}
+                                        </p>
+                                    )}
+
+                                    <button
+                                        type="submit"
+                                        disabled={printBusy}
+                                        className="w-full rounded-lg bg-orange-600 px-5 py-3 font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {printBusy ? "جارٍ البحث..." : "عرض البطاقة"}
+                                    </button>
+                                </form>
+                            )}
+
+                            {printStep === "preview" &&
+                                printDesign &&
+                                printCoordinator && (
+                                    <div className="space-y-5">
+                                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-slate-50 p-4">
+                                            <div>
+                                                <p className="font-bold text-slate-800">
+                                                    {printCoordinator.name}
+                                                </p>
+                                                <p className="mt-1 text-sm text-slate-600">
+                                                    الكود: {printCoordinator.code}
+                                                    {printCoordinator.job
+                                                        ? ` — ${printCoordinator.job}`
+                                                        : ""}
+                                                </p>
+                                                <p className="mt-1 text-sm text-slate-500">
+                                                    التصميم: {selectedPrintTemplate.name}
+                                                </p>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setPrintStep("code");
+                                                    setPrintCoordinator(null);
+                                                    setPrintError("");
+                                                }}
+                                                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-100"
+                                            >
+                                                تغيير الكود
+                                            </button>
+                                        </div>
+
+                                        <h3 className="font-semibold text-slate-700">
+                                            معاينة البطاقة قبل الطباعة
+                                        </h3>
+
+                                        <div className="overflow-auto rounded-xl border bg-slate-100 p-4">
+                                            <div
+                                                className="mx-auto"
+                                                style={{
+                                                    width: "fit-content",
+                                                    transformOrigin: "top center",
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        transform: `scale(${Math.min(
+                                                            1,
+                                                            800 / printDesign.canvas.width
+                                                        )})`,
+                                                        transformOrigin: "top center",
+                                                        marginBottom: `${printDesign.canvas.height *
+                                                            (Math.min(
+                                                                1,
+                                                                800 / printDesign.canvas.width
+                                                            ) -
+                                                                1)
+                                                            }px`,
+                                                    }}
+                                                >
+                                                    <CardArtwork
+                                                        design={printDesign}
+                                                        coordinator={printCoordinator}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {printError && (
+                                            <p role="alert" className="text-sm text-red-600">
+                                                {printError}
+                                            </p>
+                                        )}
+
+                                        <div className="flex flex-wrap justify-end gap-3 border-t pt-4">
+                                            <button
+                                                type="button"
+                                                onClick={closePrintModal}
+                                                disabled={printBusy}
+                                                className="rounded-lg border border-slate-300 px-5 py-3 hover:bg-slate-50 disabled:opacity-50"
+                                            >
+                                                إلغاء
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleManualPrint}
+                                                disabled={printBusy}
+                                                className="rounded-lg bg-orange-600 px-6 py-3 font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                {printBusy
+                                                    ? "جارٍ تجهيز البطاقة..."
+                                                    : "طباعة البطاقة"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                        </div>
+                    </section>
+                </div>
+            )}
+
+            {/* Dedicated print area: it uses the saved design selected in the modal. */}
+            <div
+                ref={printAreaRef}
+                className="coordinator-print-area"
+                dir="rtl"
+            >
+                {printCoordinator && printDesign && (
+                    <div className="coordinator-print-card">
+                        <CardArtwork
+                            design={printDesign}
+                            coordinator={printCoordinator}
+                        />
+                    </div>
+                )}
+            </div>
+
+            <style>{`
+                .coordinator-print-area {
+                    display: none;
+                }
+
+                @media print {
+                    @page {
+                        size: auto;
+                        margin: 0;
+                    }
+
+                    html,
+                    body,
+                    #root {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        width: 100% !important;
+                        min-height: 0 !important;
+                        background: #ffffff !important;
+                    }
+
+                    body * {
+                        visibility: hidden !important;
+                    }
+
+                    .coordinator-print-area,
+                    .coordinator-print-area * {
+                        visibility: visible !important;
+                    }
+
+                    .coordinator-print-area {
+                        display: block !important;
+                        position: absolute !important;
+                        inset: 0 auto auto 0 !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        width: auto !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                        background: #ffffff !important;
+                    }
+
+                    .coordinator-print-card {
+                        display: block !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+
+                    .coordinator-print-area .card-artwork {
+                        margin: 0 !important;
+                        max-width: none !important;
+                        transform: none !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
