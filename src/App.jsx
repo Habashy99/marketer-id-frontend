@@ -10,7 +10,7 @@ import CoordinatorsManagement from "./pages/marketing/coordinators/coordinatorsM
 import PricingHome from "./pages/pricing/pricingHome.jsx";
 import PrintLogManagment from "./pages/marketing/printLogs/printLogsManagement.jsx";
 import CardDesigner from "./pages/marketing/cardDesigner/cardDesigner.jsx";
-
+import CardManagement from "./pages/marketing/cardManagement/cardManagement.jsx";
 
 
 
@@ -30,6 +30,10 @@ function App() {
                     <Route
                         path="/marketing/printer-log"
                         element={<PrintLogManagment />}
+                    />
+                     <Route
+                        path="/marketing/card-management"
+                        element={<CardManagement />}
                     />
                     <Route
                         path="/marketing/coordinators"
