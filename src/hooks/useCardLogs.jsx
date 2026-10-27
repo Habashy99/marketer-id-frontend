@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { sendHttpReq } from "../lib/httpHandler";
 
-export function useCardLogs() {
+export function useCardLogs(onMutation) {
     const [cardLogs, setCardLogs] = useState([]);
     const [logsFromDate, setLogsFromDate] = useState("");
     const [logsToDate, setLogsToDate] = useState("");
@@ -113,7 +113,10 @@ export function useCardLogs() {
             setNewQuantity("");
             setSuccess(data.message || "تمت إضافة كمية البطاقات بنجاح.");
 
-            await refreshLogs();
+            await Promise.all([
+                refreshLogs(),
+                onMutation(),
+            ]);
         } catch (err) {
             console.error("Add card quantity error:", err);
             setError(err.message || "حدث خطأ أثناء إضافة الكمية.");
@@ -133,7 +136,10 @@ export function useCardLogs() {
         try {
             const data = await sendHttpReq(`card-logs/${id}`, "DELETE");
             setSuccess(data.message || "تم حذف السجل بنجاح.");
-            await refreshLogs();
+            await Promise.all([
+                refreshLogs(),
+                onMutation(),
+            ]);
         } catch (err) {
             console.error("Delete card log error:", err);
             setError(err.message || "حدث خطأ أثناء حذف السجل.");

@@ -13,7 +13,7 @@ function CardManagement() {
     const navigate = useNavigate();
     const totals = useCardTotals();
 
-    const logs = useCardLogs();
+    const logs = useCardLogs(totals.fetchTotals);
 
     return (
         <div className="min-h-screen bg-slate-100 text-slate-800">
