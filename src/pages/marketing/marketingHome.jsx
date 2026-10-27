@@ -265,7 +265,7 @@ function MarketingHome() {
 
                         {!recordsLoading && !recordsError && records.length > 0 && (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[900px] text-right text-sm">
+                                <table className="w-full min-w-225 text-right text-sm">
                                     <thead className="bg-slate-100 text-slate-700">
                                         <tr>
                                             <th className="px-4 py-3">الكود</th>
