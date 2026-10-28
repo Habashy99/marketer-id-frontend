@@ -1,11 +1,28 @@
-
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 import Header from "../components/header";
+import {
+    isAdmin,
+    hasParentPermission,
+} from "../helpers/permissions";
+
+// Parent permission IDs from dbo.auth
+const MARKETING_PERMISSION_ID = 21;
+const PRICING_PERMISSION_ID = 22; // Replace with the actual pricing parent ID.
 
 function Home() {
     const navigate = useNavigate();
     const { user } = useAuth();
+
+    const admin = isAdmin(user);
+
+    const canAccessMarketing =
+        admin ||
+        hasParentPermission(user, MARKETING_PERMISSION_ID);
+
+    const canAccessPricing =
+        admin ||
+        hasParentPermission(user, PRICING_PERMISSION_ID);
 
     return (
         <div className="min-h-screen">
@@ -26,7 +43,9 @@ function Home() {
                     {!user ? (
                         <button
                             type="button"
-                            onClick={() => navigate("/login")}
+                            onClick={() =>
+                                navigate("/login", { replace: true })
+                            }
                             className="mt-8 w-full rounded-lg bg-orange-600 px-5 py-3 font-semibold text-white transition hover:bg-orange-700"
                         >
                             تسجيل الدخول
@@ -42,50 +61,62 @@ function Home() {
                             </p>
 
                             <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                                {/* User Management */}
-                                <button
-                                    type="button"
-                                    onClick={() => navigate("/users")}
-                                    className="rounded-xl bg-orange-600 p-6 text-white shadow transition hover:-translate-y-1 hover:bg-orange-700 hover:shadow-lg"
-                                >
-                                    <span className="text-xl font-bold">
-                                        إدارة المستخدمين
-                                    </span>
+                                {admin && (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/users")}
+                                        className="rounded-xl bg-orange-600 p-6 text-white shadow transition hover:-translate-y-1 hover:bg-orange-700 hover:shadow-lg"
+                                    >
+                                        <span className="text-xl font-bold">
+                                            إدارة المستخدمين
+                                        </span>
 
-                                    <p className="mt-3 text-sm text-orange-50">
-                                        إضافة المستخدمين وإدارة الصلاحيات.
-                                    </p>
-                                </button>
+                                        <p className="mt-3 text-sm text-orange-50">
+                                            إضافة المستخدمين وإدارة الصلاحيات.
+                                        </p>
+                                    </button>
+                                )}
 
-                                {/* Marketing System */}
-                                <button
-                                    type="button"
-                                    onClick={() => navigate("/marketing")}
-                                    className="rounded-xl bg-orange-600 p-6 text-white shadow transition hover:-translate-y-1 hover:bg-orange-700 hover:shadow-lg"
-                                >
-                                    <span className="text-xl font-bold">
-                                        نظام التسويق
-                                    </span>
+                                {canAccessMarketing && (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/marketing")}
+                                        className="rounded-xl bg-orange-600 p-6 text-white shadow transition hover:-translate-y-1 hover:bg-orange-700 hover:shadow-lg"
+                                    >
+                                        <span className="text-xl font-bold">
+                                            إدارة التسويق
+                                        </span>
 
-                                    <p className="mt-3 text-sm text-slate-100">
-                                        إدارة المندوبين والمنسقين والكروت.
-                                    </p>
-                                </button>
+                                        <p className="mt-3 text-sm text-orange-50">
+                                            إدارة المندوبين والمنسقين والكروت.
+                                        </p>
+                                    </button>
+                                )}
 
-                                {/* Pricing System */}
-                                <button
-                                    type="button"
-                                    onClick={() => navigate("/pricing")}
-                                    className="rounded-xl bg-orange-600 p-6 text-white shadow transition hover:-translate-y-1 hover:bg-orange-700 hover:shadow-lg"
-                                >
-                                    <span className="text-xl font-bold">
-                                        نظام التسعير
-                                    </span>
+                                {canAccessPricing && (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/pricing")}
+                                        className="rounded-xl bg-orange-600 p-6 text-white shadow transition hover:-translate-y-1 hover:bg-orange-700 hover:shadow-lg"
+                                    >
+                                        <span className="text-xl font-bold">
+                                            إدارة التسعير
+                                        </span>
 
-                                    <p className="mt-3 text-sm text-green-50">
-                                        الدخول إلى نظام التسعير.
-                                    </p>
-                                </button>
+                                        <p className="mt-3 text-sm text-orange-50">
+                                            الدخول إلى نظام التسعير.
+                                        </p>
+                                    </button>
+                                )}
+
+                                {!admin &&
+                                    !canAccessMarketing &&
+                                    !canAccessPricing && (
+                                        <p className="col-span-full text-gray-600">
+                                            لا توجد أنظمة متاحة لحسابك حاليًا.
+                                            يرجى التواصل مع مدير النظام.
+                                        </p>
+                                    )}
                             </div>
                         </>
                     )}
