@@ -8,11 +8,15 @@ import CardLogsSection from "../../../components/cardManagement/CardLogsSection"
 import CardDetailsSection from "../../../components/cardManagement/CardDetailsSection";
 import { useCardLogs } from "../../../hooks/useCardLogs";
 import { useCardTotals } from "../../../hooks/useCardTotals";
+import { useAuth } from "../../../context/authContext";
+import { hasPermission } from "../../../helpers/permissions";
 
 function CardManagement() {
     const navigate = useNavigate();
     const totals = useCardTotals();
+    const { user } = useAuth();
 
+    const canAddQuantity = hasPermission(user, 14);
     const logs = useCardLogs(totals.fetchTotals);
 
     return (
@@ -72,6 +76,7 @@ function CardManagement() {
                     onDelete={logs.handleDeleteLog}
                     setError={logs.setError}
                     setSuccess={logs.setSuccess}
+                    canAddQuantity={canAddQuantity}
                 />
 
                 <CardDetailsSection />
