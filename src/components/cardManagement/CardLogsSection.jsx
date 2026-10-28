@@ -21,6 +21,7 @@ export default function CardLogsSection({
     onDelete,
     setError,
     setSuccess,
+    canAddQuantity = false,
 }) {
     return (
         <section className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -85,40 +86,42 @@ export default function CardLogsSection({
                 </button>
             </form>
 
-            <form
-                onSubmit={onAdd}
-                className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50 p-5 sm:flex-row sm:items-end"
-            >
-                <div className="flex-1">
-                    <label htmlFor="newQuantity" className="mb-2 block text-sm font-semibold">
-                        كمية كروت جديدة
-                    </label>
-                    <input
-                        id="newQuantity"
-                        type="number"
-                        min="1"
-                        step="1"
-                        required
-                        value={newQuantity}
-                        onChange={(e) => {
-                            setNewQuantity(e.target.value);
-                            setError("");
-                            setSuccess("");
-                        }}
-                        placeholder="أدخل الكمية"
-                        className={inputClass}
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3 font-semibold text-white hover:bg-orange-700 disabled:opacity-60"
+            {canAddQuantity && (
+                <form
+                    onSubmit={onAdd}
+                    className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50 p-5 sm:flex-row sm:items-end"
                 >
-                    <Plus size={19} />
-                    {saving ? "جارٍ الإضافة..." : "إضافة كمية"}
-                </button>
-            </form>
+                    <div className="flex-1">
+                        <label htmlFor="newQuantity" className="mb-2 block text-sm font-semibold">
+                            كمية كروت جديدة
+                        </label>
+                        <input
+                            id="newQuantity"
+                            type="number"
+                            min="1"
+                            step="1"
+                            required
+                            value={newQuantity}
+                            onChange={(e) => {
+                                setNewQuantity(e.target.value);
+                                setError("");
+                                setSuccess("");
+                            }}
+                            placeholder="أدخل الكمية"
+                            className={inputClass}
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3 font-semibold text-white hover:bg-orange-700 disabled:opacity-60"
+                    >
+                        <Plus size={19} />
+                        {saving ? "جارٍ الإضافة..." : "إضافة كمية"}
+                    </button>
+                </form>
+            )}
 
             {error && (
                 <p role="alert" className="mx-5 mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
