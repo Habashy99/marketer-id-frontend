@@ -16,6 +16,9 @@ export default function CoordinatorsToolbar({
     onCreateCoordinator,
     onCreateException,
     onDeleteException,
+    canAddCoordinator,
+    canAddException,
+    canDeleteException,
 }) {
     return (
         <div className="mb-5 flex flex-col gap-4 rounded-xl bg-white p-4 shadow sm:flex-row sm:flex-wrap sm:items-end">
@@ -66,29 +69,35 @@ export default function CoordinatorsToolbar({
             </div>
 
             <div className="flex flex-wrap gap-2">
-                <button
-                    type="button"
-                    onClick={onCreateCoordinator}
-                    className="rounded-lg bg-orange-600 px-4 py-2.5 font-semibold text-white hover:bg-orange-700"
-                >
-                    إضافة منسق
-                </button>
+                {canAddCoordinator && (
+                    <button
+                        type="button"
+                        onClick={onCreateCoordinator}
+                        className="rounded-lg bg-orange-600 px-4 py-2 text-white hover:bg-orange-700"
+                    >
+                        إضافة منسق
+                    </button>
+                )}
 
-                <button
-                    type="button"
-                    onClick={onCreateException}
-                    className="rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700"
-                >
-                    إضافة استثناء
-                </button>
+                {canAddException && (
+                    <button
+                        type="button"
+                        onClick={onCreateException}
+                        className="rounded-lg bg-orange-600 px-4 py-2 text-white hover:bg-orange-700"
+                    >
+                        إضافة استثناء
+                    </button>
+                )}
 
-                <button
-                    type="button"
-                    onClick={onDeleteException}
-                    className="rounded-lg bg-red-600 px-4 py-2.5 font-semibold text-white hover:bg-red-700"
-                >
-                    حذف استثناء
-                </button>
+                {canDeleteException && (
+                    <button
+                        type="button"
+                        onClick={onDeleteException}
+                        className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                    >
+                        حذف استثناء
+                    </button>
+                )}
             </div>
         </div>
     );
