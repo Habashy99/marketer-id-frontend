@@ -3,10 +3,10 @@ import { useEffect, useState } from "react";
 import {
     COORDINATOR_FIELDS,
     formatDate,
-    getPhotoUrl,
 } from "../../helpers/coordinatorHelpers";
 import CoordinatorPhotos from "./CoordinatorPhotos";
-
+import { useAuth } from "../../context/authContext";
+import { hasPermission } from "../../helpers/permissions";
 const API_FIELD_MAP = {
     code: "code",
     name: "name",
@@ -166,6 +166,8 @@ export default function CoordinatorDetailsModal({
     onSave,
     saving = false,
 }) {
+    const { user } = useAuth();
+    const canEditCoordinator = hasPermission(user, 25);
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({});
     const [photos, setPhotos] = useState({});
@@ -274,8 +276,8 @@ export default function CoordinatorDetailsModal({
                         {value === ""
                             ? "—"
                             : DATE_FIELDS.has(key)
-                              ? formatDate(value)
-                              : String(value)}
+                                ? formatDate(value)
+                                : String(value)}
                     </p>
                 </div>
             );
@@ -388,33 +390,37 @@ export default function CoordinatorDetailsModal({
 
                     <div className="flex flex-wrap gap-2">
                         {!editing ? (
-                            <button
-                                type="button"
-                                onClick={() => setEditing(true)}
-                                className="rounded-lg bg-orange-600 px-4 py-2 text-white hover:bg-orange-700"
-                            >
-                                تعديل البيانات
-                            </button>
-                        ) : (
-                            <>
+                            canEditCoordinator && (
                                 <button
                                     type="button"
-                                    onClick={resetEditing}
-                                    disabled={saving}
-                                    className="rounded-lg bg-gray-200 px-4 py-2 hover:bg-gray-300 disabled:opacity-50"
+                                    onClick={() => setEditing(true)}
+                                    className="rounded-lg bg-orange-600 px-4 py-2 text-white hover:bg-orange-700"
                                 >
-                                    إلغاء التعديل
+                                    تعديل البيانات
                                 </button>
+                            )
+                        ) : (
+                            canEditCoordinator && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={resetEditing}
+                                        disabled={saving}
+                                        className="rounded-lg bg-gray-200 px-4 py-2 hover:bg-gray-300 disabled:opacity-50"
+                                    >
+                                        إلغاء التعديل
+                                    </button>
 
-                                <button
-                                    type="submit"
-                                    form="edit-coordinator-form"
-                                    disabled={saving}
-                                    className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-                                >
-                                    {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
-                                </button>
-                            </>
+                                    <button
+                                        type="submit"
+                                        form="edit-coordinator-form"
+                                        disabled={saving}
+                                        className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+                                    >
+                                        {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+                                    </button>
+                                </>
+                            )
                         )}
 
                         <button
