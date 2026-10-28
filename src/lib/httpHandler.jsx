@@ -20,14 +20,16 @@ export async function sendHttpReq(url, method = "GET", data = null) {
     }
 
     const normalizedUrl = url.replace(/^\/+/, "");
+
     let response;
 
     try {
         response = await fetch(
-            `http://localhost:3000/${normalizedUrl}`,
+            `http://127.0.0.1:3000/${normalizedUrl}`,
             options
         );
-    } catch {
+    } catch (error) {
+        console.error("API connection error:", error);
         throw new Error("Cannot connect to the server.");
     }
 

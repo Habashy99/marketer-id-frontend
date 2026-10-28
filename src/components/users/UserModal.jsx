@@ -2,42 +2,102 @@
 import { useEffect, useMemo, useState } from "react";
 import { sendHttpReq } from "../../lib/httpHandler";
 
+function getAuthId(auth) {
+    return Number(auth.authNumber ?? auth.auth_number);
+}
+
+function getParentId(auth) {
+    const value = auth.parentAuthId ?? auth.parent_auth_id;
+    return value == null ? null : Number(value);
+}
+
+function getAuthName(auth) {
+    return auth.authName ?? auth.auth_name ?? "صلاحية بدون اسم";
+}
+
+function PermissionTreeNode({
+    node,
+    selectedIds,
+    onToggle,
+}) {
+    const descendantIds = useMemo(() => {
+        const ids = [];
+
+        function collect(current) {
+            ids.push(current.id);
+            current.children.forEach(collect);
+        }
+
+        collect(node);
+        return ids;
+    }, [node]);
+
+    const selectedCount = descendantIds.filter((id) =>
+        selectedIds.includes(id)
+    ).length;
+
+    const checked = selectedCount === descendantIds.length;
+    const indeterminate = selectedCount > 0 && !checked;
+
+    return (
+        <div className="space-y-2">
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 hover:bg-orange-50">
+                <input
+                    type="checkbox"
+                    checked={checked}
+                    ref={(element) => {
+                        if (element) {
+                            element.indeterminate = indeterminate;
+                        }
+                    }}
+                    onChange={() => onToggle(descendantIds, checked)}
+                    className="h-4 w-4 accent-orange-600"
+                />
+
+                <span className="font-medium text-slate-800">
+                    {node.name}
+                </span>
+            </label>
+
+            {node.children.length > 0 && (
+                <div className="mr-5 space-y-2 border-r-2 border-orange-100 pr-3">
+                    {node.children.map((child) => (
+                        <PermissionTreeNode
+                            key={child.id}
+                            node={child}
+                            selectedIds={selectedIds}
+                            onToggle={onToggle}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function UserModal({ type, onClose, onSuccess, currentUser }) {
     const [code, setCode] = useState("");
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
     const [userType, setUserType] = useState("user");
-    const [permission, setPermission] = useState("");
+    const [selectedPermissions, setSelectedPermissions] = useState([]);
 
     const [auths, setAuths] = useState([]);
     const [authsLoading, setAuthsLoading] = useState(false);
-
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
     const titles = {
         create: "إضافة مستخدم جديد",
-        give: "منح صلاحية",
-        delete: "حذف صلاحية",
+        give: "منح صلاحيات",
+        delete: "حذف صلاحيات",
     };
 
-    const getAuthId = (auth) =>
-        Number(auth.authNumber ?? auth.auth_number);
-
-    const getParentId = (auth) => {
-        const value = auth.parentAuthId ?? auth.parent_auth_id;
-        return value == null ? null : Number(value);
-    };
-
-    const getAuthName = (auth) =>
-        auth.authName ?? auth.auth_name ?? "صلاحية بدون اسم";
-
-    // Load permissions for grant/delete operations.
     useEffect(() => {
         if (type !== "give" && type !== "delete") {
             setAuths([]);
-            setPermission("");
+            setSelectedPermissions([]);
             return;
         }
 
@@ -46,20 +106,20 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
         async function fetchAuths() {
             setAuthsLoading(true);
             setError("");
-            setPermission("");
 
             try {
                 const response = await sendHttpReq("auths");
+                const records = response?.auths;
 
-                if (!Array.isArray(response?.auths)) {
+                if (!Array.isArray(records)) {
                     throw new Error(
-                        response?.message ||
-                        "لم يتم العثور على قائمة الصلاحيات."
+                        response?.message || "تعذر تحميل الصلاحيات."
                     );
                 }
 
                 if (!cancelled) {
-                    setAuths(response.auths);
+                    setAuths(records);
+                    setSelectedPermissions([]);
                 }
             } catch (err) {
                 if (!cancelled) {
@@ -67,9 +127,7 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                     setError(err.message || "فشل تحميل الصلاحيات.");
                 }
             } finally {
-                if (!cancelled) {
-                    setAuthsLoading(false);
-                }
+                if (!cancelled) setAuthsLoading(false);
             }
         }
 
@@ -80,110 +138,62 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
         };
     }, [type]);
 
-    /*
-     * Build a recursive permission tree.
-     *
-     * Supports:
-     * - authNumber / auth_number
-     * - parentAuthId / parent_auth_id
-     * - Any number of hierarchy levels
-     *
-     * Example:
-     * الإدارة
-     *   إدارة التسويق
-     *   إدارة التسعير
-     * الأنظمة
-     *   نظام طبع كارت
-     *     إنشاء التصميم
-     *     حذف التصميم
-     */
-    const permissionOptions = useMemo(() => {
-        const authMap = new Map();
-        const childrenMap = new Map();
+    const permissionTree = useMemo(() => {
+        const nodes = new Map();
 
         auths.forEach((auth) => {
             const id = getAuthId(auth);
 
-            if (Number.isFinite(id)) {
-                authMap.set(id, auth);
-                childrenMap.set(id, []);
+            if (Number.isInteger(id) && id > 0) {
+                nodes.set(id, {
+                    id,
+                    name: getAuthName(auth),
+                    parentId: getParentId(auth),
+                    children: [],
+                });
             }
         });
 
         const roots = [];
 
-        auths.forEach((auth) => {
-            const id = getAuthId(auth);
-            const parentId = getParentId(auth);
-
-            if (!authMap.has(id)) return;
+        nodes.forEach((node) => {
+            const parent = nodes.get(node.parentId);
 
             if (
-                parentId === null ||
-                parentId === id ||
-                !authMap.has(parentId)
+                parent &&
+                parent.id !== node.id
             ) {
-                roots.push(auth);
+                parent.children.push(node);
             } else {
-                childrenMap.get(parentId).push(auth);
+                roots.push(node);
             }
         });
 
-        // Force the main categories to appear first.
-        const rootOrder = ["الإدارة", "الأنظمة"];
+        const sortNodes = (items) => {
+            items.sort((a, b) =>
+                a.name.localeCompare(b.name, "ar")
+            );
 
-        roots.sort((a, b) => {
-            const nameA = getAuthName(a).trim();
-            const nameB = getAuthName(b).trim();
-
-            const indexA = rootOrder.indexOf(nameA);
-            const indexB = rootOrder.indexOf(nameB);
-
-            if (indexA !== -1 || indexB !== -1) {
-                if (indexA === -1) return 1;
-                if (indexB === -1) return -1;
-                return indexA - indexB;
-            }
-
-            return nameA.localeCompare(nameB, "ar");
-        });
-
-        const options = [];
-        const visited = new Set();
-
-        const addNode = (auth, depth = 0) => {
-            const id = getAuthId(auth);
-
-            if (visited.has(id)) return;
-            visited.add(id);
-
-            options.push({
-                id,
-                name: getAuthName(auth),
-                depth,
-            });
-
-            const children = childrenMap.get(id) ?? [];
-
-            children.forEach((child) => addNode(child, depth + 1));
+            items.forEach((item) => sortNodes(item.children));
         };
 
-        roots.forEach((root) => addNode(root));
+        sortNodes(roots);
 
-        // Include any remaining entries without duplicating them.
-        auths.forEach((auth) => {
-            const id = getAuthId(auth);
-
-            if (Number.isFinite(id) && !visited.has(id)) {
-                addNode(auth);
-            }
-        });
-
-        return options;
+        return roots;
     }, [auths]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const togglePermissions = (ids, currentlyChecked) => {
+        setSelectedPermissions((previous) => {
+            if (currentlyChecked) {
+                return previous.filter((id) => !ids.includes(id));
+            }
+
+            return [...new Set([...previous, ...ids])];
+        });
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
         setError("");
         setSuccess("");
 
@@ -207,13 +217,8 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
         }
 
         if (type === "give" || type === "delete") {
-            if (!permission) {
-                setError("يرجى اختيار الصلاحية.");
-                return;
-            }
-
-            if (!auths.some((auth) => getAuthId(auth) === Number(permission))) {
-                setError("الصلاحية المختارة غير صحيحة.");
+            if (selectedPermissions.length === 0) {
+                setError("يرجى اختيار صلاحية واحدة على الأقل.");
                 return;
             }
         }
@@ -226,40 +231,41 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
         setLoading(true);
 
         try {
-            let data;
+            let response;
 
             if (type === "create") {
-                data = await sendHttpReq("users/createUser", "POST", {
-                    code: Number(trimmedCode),
-                    name: name.trim(),
-                    password,
-                    createdBy: currentUser?.code,
-                    type: userType,
-                });
+                response = await sendHttpReq(
+                    "users/createUser",
+                    "POST",
+                    {
+                        code: Number(trimmedCode),
+                        name: name.trim(),
+                        password,
+                        createdBy: currentUser?.code,
+                        type: userType,
+                    }
+                );
             } else if (type === "give") {
-                data = await sendHttpReq(
+                response = await sendHttpReq(
                     "authsUser/createAuthUser",
                     "POST",
                     {
-                        authId: Number(permission),
                         code: Number(trimmedCode),
+                        authIds: selectedPermissions,
                     }
                 );
             } else {
-                data = await sendHttpReq(
+                response = await sendHttpReq(
                     "authsUser/deleteAuthUser",
                     "DELETE",
                     {
                         code: Number(trimmedCode),
-                        authId: Number(permission),
+                        authIds: selectedPermissions,
                     }
                 );
             }
 
-            setSuccess(data?.message || "تمت العملية بنجاح.");
-
-            await new Promise((resolve) => setTimeout(resolve, 500));
-
+            setSuccess(response?.message || "تمت العملية بنجاح.");
             await onSuccess();
         } catch (err) {
             setError(err.message || "حدث خطأ أثناء تنفيذ العملية.");
@@ -273,9 +279,12 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
     return (
         <div
             dir="rtl"
-            className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4"
-            onMouseDown={(e) => {
-                if (e.target === e.currentTarget && !loading) {
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+            onMouseDown={(event) => {
+                if (
+                    event.target === event.currentTarget &&
+                    !loading
+                ) {
                     onClose();
                 }
             }}
@@ -315,7 +324,7 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                                 <input
                                     type="text"
                                     value={name}
-                                    onChange={(e) => setName(e.target.value)}
+                                    onChange={(event) => setName(event.target.value)}
                                     required
                                     autoFocus
                                     className="w-full rounded-lg border border-gray-300 px-3 py-3"
@@ -330,7 +339,7 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                                     type="number"
                                     min="1"
                                     value={code}
-                                    onChange={(e) => setCode(e.target.value)}
+                                    onChange={(event) => setCode(event.target.value)}
                                     required
                                     className="w-full rounded-lg border border-gray-300 px-3 py-3"
                                 />
@@ -343,7 +352,7 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                                 <input
                                     type="password"
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(event) => setPassword(event.target.value)}
                                     required
                                     autoComplete="new-password"
                                     className="w-full rounded-lg border border-gray-300 px-3 py-3"
@@ -356,7 +365,7 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                                 </label>
                                 <select
                                     value={userType}
-                                    onChange={(e) => setUserType(e.target.value)}
+                                    onChange={(event) => setUserType(event.target.value)}
                                     className="w-full rounded-lg border border-gray-300 px-3 py-3"
                                 >
                                     <option value="user">مستخدم</option>
@@ -376,61 +385,43 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                                     type="number"
                                     min="1"
                                     value={code}
-                                    onChange={(e) => setCode(e.target.value)}
+                                    onChange={(event) => setCode(event.target.value)}
                                     required
                                     autoFocus
                                     className="w-full rounded-lg border border-gray-300 px-3 py-3"
                                 />
                             </div>
 
-                            <div>
-                                <label
-                                    htmlFor="permission-select"
-                                    className="mb-1 block text-sm font-medium"
-                                >
-                                    الصلاحية
-                                </label>
+                            <div className="flex items-center justify-between gap-3">
+                                <h3 className="font-semibold text-slate-800">
+                                    اختر الصلاحيات
+                                </h3>
 
-                                {authsLoading ? (
-                                    <p className="rounded-lg border border-gray-200 p-3 text-gray-500">
-                                        جاري تحميل الصلاحيات...
-                                    </p>
-                                ) : (
-                                    <select
-                                        id="permission-select"
-                                        value={permission}
-                                        onChange={(e) => setPermission(e.target.value)}
-                                        required
-                                        disabled={authsLoading || auths.length === 0}
-                                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-3 disabled:bg-gray-100"
-                                    >
-                                        <option value="" disabled>
-                                            اختر الصلاحية
-                                        </option>
-
-                                        {permissionOptions.map((option) => (
-                                            <option key={option.id} value={option.id}>
-                                                {"　".repeat(option.depth)}
-                                                {option.depth > 0 ? "└ " : ""}
-                                                {option.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
-
-                                {!authsLoading && auths.length === 0 && (
-                                    <p className="mt-2 text-sm text-gray-500">
-                                        لا توجد صلاحيات متاحة في جدول الصلاحيات.
-                                    </p>
-                                )}
-
-                                {!authsLoading && auths.length > 0 && (
-                                    <p className="mt-2 text-xs text-gray-500">
-                                        يمكنك اختيار النظام الرئيسي أو أي صلاحية
-                                        فرعية تحته.
-                                    </p>
-                                )}
+                                <span className="text-sm text-slate-500">
+                                    محدد: {selectedPermissions.length}
+                                </span>
                             </div>
+
+                            {authsLoading ? (
+                                <p className="rounded-lg border p-4 text-slate-500">
+                                    جارٍ تحميل الصلاحيات...
+                                </p>
+                            ) : permissionTree.length === 0 ? (
+                                <p className="rounded-lg border p-4 text-slate-500">
+                                    لا توجد صلاحيات متاحة.
+                                </p>
+                            ) : (
+                                <div className="max-h-80 space-y-4 overflow-y-auto rounded-xl border border-slate-200 p-3">
+                                    {permissionTree.map((node) => (
+                                        <PermissionTreeNode
+                                            key={node.id}
+                                            node={node}
+                                            selectedIds={selectedPermissions}
+                                            onToggle={togglePermissions}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </>
                     )}
 
@@ -471,7 +462,13 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                             }
                             className="rounded-lg bg-orange-600 px-5 py-2 text-white hover:bg-orange-700 disabled:opacity-60"
                         >
-                            {loading ? "جاري التنفيذ..." : "تأكيد"}
+                            {loading
+                                ? "جارٍ التنفيذ..."
+                                : type === "give"
+                                  ? "منح الصلاحيات"
+                                  : type === "delete"
+                                    ? "حذف الصلاحيات"
+                                    : "تأكيد"}
                         </button>
                     </div>
                 </form>
