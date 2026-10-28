@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { sendHttpReq } from "../../lib/httpHandler";
 
 function UserModal({ type, onClose, onSuccess, currentUser }) {
@@ -7,23 +7,180 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
     const [userType, setUserType] = useState("user");
-    const [permission, setPermission] = useState("1");
+    const [permission, setPermission] = useState("");
+
+    const [auths, setAuths] = useState([]);
+    const [authsLoading, setAuthsLoading] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-
-    const permissionOptions = [
-        { value: "1", label: "طباعة كارت" },
-        { value: "2", label: "إضافة مندوب" },
-        { value: "12", label: "testtest" },
-    ];
 
     const titles = {
         create: "إضافة مستخدم جديد",
         give: "منح صلاحية",
         delete: "حذف صلاحية",
     };
+
+    const getAuthId = (auth) =>
+        Number(auth.authNumber ?? auth.auth_number);
+
+    const getParentId = (auth) => {
+        const value = auth.parentAuthId ?? auth.parent_auth_id;
+        return value == null ? null : Number(value);
+    };
+
+    const getAuthName = (auth) =>
+        auth.authName ?? auth.auth_name ?? "صلاحية بدون اسم";
+
+    // Load permissions for grant/delete operations.
+    useEffect(() => {
+        if (type !== "give" && type !== "delete") {
+            setAuths([]);
+            setPermission("");
+            return;
+        }
+
+        let cancelled = false;
+
+        async function fetchAuths() {
+            setAuthsLoading(true);
+            setError("");
+            setPermission("");
+
+            try {
+                const response = await sendHttpReq("auths");
+
+                if (!Array.isArray(response?.auths)) {
+                    throw new Error(
+                        response?.message ||
+                        "لم يتم العثور على قائمة الصلاحيات."
+                    );
+                }
+
+                if (!cancelled) {
+                    setAuths(response.auths);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setAuths([]);
+                    setError(err.message || "فشل تحميل الصلاحيات.");
+                }
+            } finally {
+                if (!cancelled) {
+                    setAuthsLoading(false);
+                }
+            }
+        }
+
+        fetchAuths();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [type]);
+
+    /*
+     * Build a recursive permission tree.
+     *
+     * Supports:
+     * - authNumber / auth_number
+     * - parentAuthId / parent_auth_id
+     * - Any number of hierarchy levels
+     *
+     * Example:
+     * الإدارة
+     *   إدارة التسويق
+     *   إدارة التسعير
+     * الأنظمة
+     *   نظام طبع كارت
+     *     إنشاء التصميم
+     *     حذف التصميم
+     */
+    const permissionOptions = useMemo(() => {
+        const authMap = new Map();
+        const childrenMap = new Map();
+
+        auths.forEach((auth) => {
+            const id = getAuthId(auth);
+
+            if (Number.isFinite(id)) {
+                authMap.set(id, auth);
+                childrenMap.set(id, []);
+            }
+        });
+
+        const roots = [];
+
+        auths.forEach((auth) => {
+            const id = getAuthId(auth);
+            const parentId = getParentId(auth);
+
+            if (!authMap.has(id)) return;
+
+            if (
+                parentId === null ||
+                parentId === id ||
+                !authMap.has(parentId)
+            ) {
+                roots.push(auth);
+            } else {
+                childrenMap.get(parentId).push(auth);
+            }
+        });
+
+        // Force the main categories to appear first.
+        const rootOrder = ["الإدارة", "الأنظمة"];
+
+        roots.sort((a, b) => {
+            const nameA = getAuthName(a).trim();
+            const nameB = getAuthName(b).trim();
+
+            const indexA = rootOrder.indexOf(nameA);
+            const indexB = rootOrder.indexOf(nameB);
+
+            if (indexA !== -1 || indexB !== -1) {
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+            }
+
+            return nameA.localeCompare(nameB, "ar");
+        });
+
+        const options = [];
+        const visited = new Set();
+
+        const addNode = (auth, depth = 0) => {
+            const id = getAuthId(auth);
+
+            if (visited.has(id)) return;
+            visited.add(id);
+
+            options.push({
+                id,
+                name: getAuthName(auth),
+                depth,
+            });
+
+            const children = childrenMap.get(id) ?? [];
+
+            children.forEach((child) => addNode(child, depth + 1));
+        };
+
+        roots.forEach((root) => addNode(root));
+
+        // Include any remaining entries without duplicating them.
+        auths.forEach((auth) => {
+            const id = getAuthId(auth);
+
+            if (Number.isFinite(id) && !visited.has(id)) {
+                addNode(auth);
+            }
+        });
+
+        return options;
+    }, [auths]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -49,6 +206,18 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
             }
         }
 
+        if (type === "give" || type === "delete") {
+            if (!permission) {
+                setError("يرجى اختيار الصلاحية.");
+                return;
+            }
+
+            if (!auths.some((auth) => getAuthId(auth) === Number(permission))) {
+                setError("الصلاحية المختارة غير صحيحة.");
+                return;
+            }
+        }
+
         if (!["create", "give", "delete"].includes(type)) {
             setError("نوع العملية غير صحيح.");
             return;
@@ -68,21 +237,28 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                     type: userType,
                 });
             } else if (type === "give") {
-                data = await sendHttpReq("authsUser/createAuthUser", "POST", {
-                    authId: Number(permission),
-                    code: Number(trimmedCode),
-                });
+                data = await sendHttpReq(
+                    "authsUser/createAuthUser",
+                    "POST",
+                    {
+                        authId: Number(permission),
+                        code: Number(trimmedCode),
+                    }
+                );
             } else {
-                data = await sendHttpReq("authsUser/deleteAuthUser", "DELETE", {
-                    code: Number(trimmedCode),
-                    authId: Number(permission),
-                });
+                data = await sendHttpReq(
+                    "authsUser/deleteAuthUser",
+                    "DELETE",
+                    {
+                        code: Number(trimmedCode),
+                        authId: Number(permission),
+                    }
+                );
             }
 
             setSuccess(data?.message || "تمت العملية بنجاح.");
 
-            // Allow the success message to appear before refreshing the list.
-            await new Promise((resolve) => setTimeout(resolve, 700));
+            await new Promise((resolve) => setTimeout(resolve, 500));
 
             await onSuccess();
         } catch (err) {
@@ -91,6 +267,8 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
             setLoading(false);
         }
     };
+
+    const isPermissionOperation = type === "give" || type === "delete";
 
     return (
         <div
@@ -188,7 +366,7 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                         </>
                     )}
 
-                    {(type === "give" || type === "delete") && (
+                    {isPermissionOperation && (
                         <>
                             <div>
                                 <label className="mb-1 block text-sm font-medium">
@@ -206,35 +384,70 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
                             </div>
 
                             <div>
-                                <label className="mb-1 block text-sm font-medium">
+                                <label
+                                    htmlFor="permission-select"
+                                    className="mb-1 block text-sm font-medium"
+                                >
                                     الصلاحية
                                 </label>
-                                <select
-                                    value={permission}
-                                    onChange={(e) => setPermission(e.target.value)}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-3"
-                                >
-                                    {permissionOptions.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.value}
-                                        >
-                                            {option.label}
+
+                                {authsLoading ? (
+                                    <p className="rounded-lg border border-gray-200 p-3 text-gray-500">
+                                        جاري تحميل الصلاحيات...
+                                    </p>
+                                ) : (
+                                    <select
+                                        id="permission-select"
+                                        value={permission}
+                                        onChange={(e) => setPermission(e.target.value)}
+                                        required
+                                        disabled={authsLoading || auths.length === 0}
+                                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-3 disabled:bg-gray-100"
+                                    >
+                                        <option value="" disabled>
+                                            اختر الصلاحية
                                         </option>
-                                    ))}
-                                </select>
+
+                                        {permissionOptions.map((option) => (
+                                            <option key={option.id} value={option.id}>
+                                                {"　".repeat(option.depth)}
+                                                {option.depth > 0 ? "└ " : ""}
+                                                {option.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+
+                                {!authsLoading && auths.length === 0 && (
+                                    <p className="mt-2 text-sm text-gray-500">
+                                        لا توجد صلاحيات متاحة في جدول الصلاحيات.
+                                    </p>
+                                )}
+
+                                {!authsLoading && auths.length > 0 && (
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        يمكنك اختيار النظام الرئيسي أو أي صلاحية
+                                        فرعية تحته.
+                                    </p>
+                                )}
                             </div>
                         </>
                     )}
 
                     {error && (
-                        <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                        <p
+                            role="alert"
+                            className="rounded-lg bg-red-50 p-3 text-sm text-red-700"
+                        >
                             {error}
                         </p>
                     )}
 
                     {success && (
-                        <p role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+                        <p
+                            role="status"
+                            className="rounded-lg bg-green-50 p-3 text-sm text-green-700"
+                        >
                             {success}
                         </p>
                     )}
@@ -251,7 +464,11 @@ function UserModal({ type, onClose, onSuccess, currentUser }) {
 
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={
+                                loading ||
+                                (isPermissionOperation &&
+                                    (authsLoading || auths.length === 0))
+                            }
                             className="rounded-lg bg-orange-600 px-5 py-2 text-white hover:bg-orange-700 disabled:opacity-60"
                         >
                             {loading ? "جاري التنفيذ..." : "تأكيد"}
