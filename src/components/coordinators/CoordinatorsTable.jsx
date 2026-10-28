@@ -1,4 +1,5 @@
-
+import { hasPermission } from "../../helpers/permissions";
+import { useAuth } from "../../context/authContext";
 import {
     formatDate,
     isCertificateExpired,
@@ -26,7 +27,10 @@ export default function CoordinatorsTable({
             </p>
         );
     }
+    const { user } = useAuth();
 
+    // Use 16 for the marketing employees' card system.
+    const canPrintCard = hasPermission(user, 24);
     return (
         <div className="overflow-x-auto rounded-xl bg-white shadow">
             <table className="min-w-350 w-full border-collapse text-right text-sm">
@@ -108,8 +112,8 @@ export default function CoordinatorsTable({
                                 <td className="whitespace-nowrap p-3">
                                     <span
                                         className={`rounded-full px-2 py-1 ${inactive
-                                                ? "bg-red-200 text-red-800"
-                                                : "bg-green-100 text-green-800"
+                                            ? "bg-red-200 text-red-800"
+                                            : "bg-green-100 text-green-800"
                                             }`}
                                     >
                                         {coordinator.states || "—"}
@@ -122,8 +126,8 @@ export default function CoordinatorsTable({
 
                                 <td
                                     className={`whitespace-nowrap p-3 ${expired
-                                            ? "font-bold text-red-700"
-                                            : ""
+                                        ? "font-bold text-red-700"
+                                        : ""
                                         }`}
                                 >
                                     {formatDate(
@@ -187,19 +191,19 @@ export default function CoordinatorsTable({
                                 </td>
 
                                 {/* Print card */}
-                                <td
-                                    className="whitespace-nowrap p-3"
-                                >
-                                    <button
-                                        type="button"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            onPrintCoordinator(coordinator);
-                                        }}
-                                        className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                                    >
-                                        طباعة كارت
-                                    </button>
+                                <td className="whitespace-nowrap p-3">
+                                    {canPrintCard && (
+                                        <button
+                                            type="button"
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                onPrintCoordinator?.(coordinator);
+                                            }}
+                                            className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                                        >
+                                            طباعة كارت
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         );
