@@ -1,6 +1,6 @@
 
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
-import { formatDate, inputClass } from "../../utils/cardHelpers";
+import { formatDate, inputClass } from "../../helpers/cardHelpers";
 
 export default function CardLogsSection({
     logs,

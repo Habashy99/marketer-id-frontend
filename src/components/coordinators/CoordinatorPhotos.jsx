@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { getPhotoUrl, PHOTO_FIELDS } from "../../utils/coordinatorHelpers";
+import { getPhotoUrl, PHOTO_FIELDS } from "../../helpers/coordinatorHelpers";
 
 export default function CoordinatorPhotos({
     coordinator,

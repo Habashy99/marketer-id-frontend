@@ -7,7 +7,7 @@ import {
     useState,
 } from "react";
 
-import { getPhotoUrl } from "../../utils/coordinatorHelpers";
+import { getPhotoUrl } from "../../helpers/coordinatorHelpers";
 import { sendHttpReq } from "../../lib/httpHandler";
 
 import {

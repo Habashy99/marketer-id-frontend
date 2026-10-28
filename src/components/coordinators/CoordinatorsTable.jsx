@@ -3,7 +3,7 @@ import {
     formatDate,
     isCertificateExpired,
     getPhotoUrl,
-} from "../../utils/coordinatorHelpers";
+} from "../../helpers/coordinatorHelpers";
 
 export default function CoordinatorsTable({
     coordinators,

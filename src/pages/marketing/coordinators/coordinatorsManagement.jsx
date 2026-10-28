@@ -14,7 +14,7 @@ import PrintCoordinatorModal from "../../../components/coordinators/PrintCoordin
 import {
     groupCoordinators,
     normalizeJob,
-} from "../../../utils/coordinatorHelpers";
+} from "../../../helpers/coordinatorHelpers";
 
 export default function CoordinatorsManagement() {
     const [rows, setRows] = useState([]);

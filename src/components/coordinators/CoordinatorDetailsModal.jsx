@@ -4,7 +4,7 @@ import {
     COORDINATOR_FIELDS,
     formatDate,
     getPhotoUrl,
-} from "../../utils/coordinatorHelpers";
+} from "../../helpers/coordinatorHelpers";
 import CoordinatorPhotos from "./CoordinatorPhotos";
 
 const API_FIELD_MAP = {
