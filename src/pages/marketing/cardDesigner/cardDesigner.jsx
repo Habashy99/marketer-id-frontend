@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Header from "../../../components/header";
 import { sendHttpReq } from "../../../lib/httpHandler";
-
+import { useAuth } from "../../../context/authContext";
+import { hasPermission } from "../../../helpers/permissions";
 import CanvasSettings from "../../../components/cardDesigner/CanvasSettings";
 import CardPreview from "../../../components/cardDesigner/CardPreview";
 import ElementList from "../../../components/cardDesigner/ElementList";
@@ -316,9 +317,18 @@ function CardArtwork({ design, coordinator }) {
 }
 
 export default function CardTemplateSettings() {
+    const { user } = useAuth();
+
+    const canCreateDesign =
+        hasPermission(user, 2) || hasPermission(user, 5);
+
+    const canDeleteDesign =
+        hasPermission(user, 3) || hasPermission(user, 6);
+
+    const canPrintCard = hasPermission(user, 24);
+
     const [template, setTemplate] = useState(cloneDefaultTemplate);
     const [selectedId, setSelectedId] = useState("");
-
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
@@ -500,6 +510,7 @@ export default function CardTemplateSettings() {
         [template]
     );
     const handleEditTemplate = (savedTemplate) => {
+        if (!canDeleteDesign) return;
         if (savedTemplate.id == null) {
             setTemplatesError("رقم التصميم غير موجود.");
             return;
@@ -550,6 +561,7 @@ export default function CardTemplateSettings() {
         setTemplatesError("");
     };
     const handleDeleteTemplate = async (template) => {
+        if (!canDeleteDesign) return;
         const confirmed = window.confirm(
             `هل أنت متأكد من حذف تصميم "${template.name}"؟`
         );
@@ -579,7 +591,7 @@ export default function CardTemplateSettings() {
         }
     };
     const saveTemplate = async () => {
-        if (busy) return;
+        if (!canCreateDesign || busy) return;
 
         if (!template.name.trim()) {
             setError("أدخل اسم القالب.");
@@ -632,7 +644,7 @@ export default function CardTemplateSettings() {
     };
 
     const openPrintModal = async () => {
-        if (templatesLoading || printBusy) return;
+        if (!canPrintCard || templatesLoading || printBusy) return;
 
         setPrintType("جديد");
         setPrintModalOpen(true);
@@ -770,7 +782,7 @@ export default function CardTemplateSettings() {
     };
 
     const handleManualPrint = async () => {
-        if (printInProgressRef.current || printBusy) return;
+        if (!canPrintCard || printInProgressRef.current || printBusy) return;
 
         if (!printCoordinator || !printDesign) {
             setPrintError("اختر تصميمًا وأدخل كود الموظف أولًا.");
@@ -1211,6 +1223,8 @@ export default function CardTemplateSettings() {
                     busy={busy || printBusy}
                     error={error}
                     notice={notice}
+                    canPrintCard={canPrintCard}
+                    canCreateDesign={canCreateDesign}
                 />
 
                 {editingTemplateId !== null && (
@@ -1405,21 +1419,25 @@ export default function CardTemplateSettings() {
 
                                                             {/* Edit and Delete buttons */}
                                                             <div className="mt-4 flex gap-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleEditTemplate(savedTemplate)}
-                                                                    className="flex-1 rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600"
-                                                                >
-                                                                    تعديل التصميم
-                                                                </button>
+                                                                {canCreateDesign && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleEditTemplate(savedTemplate)}
+                                                                        className="flex-1 rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+                                                                    >
+                                                                        تعديل التصميم
+                                                                    </button>
+                                                                )}
 
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleDeleteTemplate(savedTemplate)}
-                                                                    className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
-                                                                >
-                                                                    حذف التصميم
-                                                                </button>
+                                                                {canDeleteDesign && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteTemplate(savedTemplate)}
+                                                                        className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                                                                    >
+                                                                        حذف التصميم
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     );
