@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Header from "../../../components/header";
+import { hasPermission } from "../../../helpers/permissions";
+import { useAuth } from "../../../context/authContext";
 import { sendHttpReq } from "../../../lib/httpHandler";
 import CoordinatorsToolbar from "../../../components/coordinators/CoordinatorsToolbar";
 import CoordinatorsTable from "../../../components/coordinators/CoordinatorsTable";
@@ -17,6 +19,15 @@ import {
 } from "../../../helpers/coordinatorHelpers";
 
 export default function CoordinatorsManagement() {
+    const { user } = useAuth();
+
+    const canAddCoordinator = hasPermission(user, 8);
+    const canAddException = hasPermission(user, 9);
+    const canDeleteException = hasPermission(user, 10);
+    const canViewCoordinators = hasPermission(user, 11);
+
+    const canManageCoordinators =
+        canAddCoordinator || canAddException || canDeleteException;
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -309,15 +320,12 @@ export default function CoordinatorsManagement() {
                     setJob={setJob}
                     filter={filter}
                     setFilter={setFilter}
-                    onCreateCoordinator={() =>
-                        setCreateCoordinatorOpen(true)
-                    }
-                    onCreateException={() =>
-                        setCreateExceptionOpen(true)
-                    }
-                    onDeleteException={() =>
-                        setDeleteExceptionOpen(true)
-                    }
+                    onCreateCoordinator={() => setCreateCoordinatorOpen(true)}
+                    onCreateException={() => setCreateExceptionOpen(true)}
+                    onDeleteException={() => setDeleteExceptionOpen(true)}
+                    canAddCoordinator={canAddCoordinator}
+                    canAddException={canAddException}
+                    canDeleteException={canDeleteException}
                 />
 
                 <div className="mb-3 text-sm text-gray-600">
