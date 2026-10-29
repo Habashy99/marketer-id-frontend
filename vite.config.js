@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -7,4 +8,28 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+
+    base: "./",
+
+    server: {
+        host: "127.0.0.1",
+        port: 5173,
+    },
+
+    build: {
+        chunkSizeWarningLimit: 600,
+
+        rolldownOptions: {
+            output: {
+                codeSplitting: {
+                    groups: [
+                        {
+                            name: "vendor",
+                            test: /node_modules/,
+                        },
+                    ],
+                },
+            },
+        },
+    },
 });
