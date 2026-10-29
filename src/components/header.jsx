@@ -1,6 +1,8 @@
+
 import { useNavigate } from "react-router-dom";
 import { sendHttpReq } from "../lib/httpHandler";
 import { useAuth } from "../context/authContext";
+import marketLogo from "../assets/gomlaMarketlogo2.jpg";
 
 function Header() {
     const navigate = useNavigate();
@@ -8,9 +10,7 @@ function Header() {
 
     const logout = async () => {
         try {
-            // sendHttpReq should throw if the server returns an HTTP error.
             await sendHttpReq("users/logout", "POST");
-
             logoutUser();
             navigate("/", { replace: true });
         } catch (error) {
@@ -40,13 +40,13 @@ function Header() {
                 dir="rtl"
                 className="justify-self-center whitespace-nowrap text-lg font-bold text-orange-600 sm:text-3xl"
             >
-                اداره جمله ماركت
+                إدارة جملة ماركت
             </h1>
 
             <div className="justify-self-end overflow-hidden rounded-lg">
                 <img
-                    src="/images/gomlaMarketlogo2.jpg"
-                    alt="HRMS Logo"
+                    src={marketLogo}
+                    alt="Gomla Market Logo"
                     className="h-12 w-12 object-cover sm:h-20 sm:w-20"
                 />
             </div>

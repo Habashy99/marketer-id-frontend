@@ -208,9 +208,7 @@ function getPhotoUrl(coordinator) {
         return String(photoPath);
     }
 
-    return `http://localhost:3000/coordinators/photo?path=${encodeURIComponent(
-        String(photoPath).replace(/\\/g, "/")
-    )}`;
+    return `http://127.0.0.1:3000/coordinators/photo?path=${encodeURIComponent(path)}`;
 }
 
 function CardArtwork({ design, coordinator }) {
