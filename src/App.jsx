@@ -1,6 +1,5 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/authContext";
-
 
 import Home from "./pages/home.jsx";
 import Login from "./pages/login.jsx";
@@ -12,13 +11,10 @@ import PrintLogManagment from "./pages/marketing/printLogs/printLogsManagement.j
 import CardDesigner from "./pages/marketing/cardDesigner/cardDesigner.jsx";
 import CardManagement from "./pages/marketing/cardManagement/cardManagement.jsx";
 
-
-
-
 function App() {
     return (
         <AuthProvider>
-            <BrowserRouter>
+            <HashRouter>
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/login" element={<Login />} />
@@ -44,11 +40,8 @@ function App() {
                         element={<CardDesigner />}
                     />
                     <Route path="/pricing" element={<PricingHome />} />
-
-
-
                 </Routes>
-            </BrowserRouter>
+            </HashRouter>
         </AuthProvider>
     );
 }
