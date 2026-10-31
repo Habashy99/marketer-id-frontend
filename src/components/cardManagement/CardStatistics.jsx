@@ -10,17 +10,6 @@ export default function CardStatistics({
 }) {
     return (
         <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="shrink-0 rounded-xl bg-orange-100 p-3 text-orange-600">
-                    <CreditCard size={25} />
-                </div>
-                <div>
-                    <p className="text-sm text-slate-500">إجمالي المبيعات</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-800">
-                        {cardsCount}
-                    </p>
-                </div>
-            </div>
 
             <div className="grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-3">
                 {[
