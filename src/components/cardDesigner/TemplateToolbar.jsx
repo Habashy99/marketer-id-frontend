@@ -26,15 +26,7 @@ export default function TemplateToolbar({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    {canPrintCard && (
-                        <button
-                            type="button"
-                            onClick={onPrint}
-                            className="rounded-lg border border-slate-300 bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                        >
-                            طباعة كارت
-                        </button>
-                    )}
+
 
                     {canCreateDesign && (
                         <button
