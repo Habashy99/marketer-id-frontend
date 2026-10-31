@@ -5,7 +5,6 @@ import { ArrowRight } from "lucide-react";
 import Header from "../../../components/header";
 import CardStatistics from "../../../components/cardManagement/CardStatistics";
 import CardLogsSection from "../../../components/cardManagement/CardLogsSection";
-import CardDetailsSection from "../../../components/cardManagement/CardDetailsSection";
 import { useCardLogs } from "../../../hooks/useCardLogs";
 import { useCardTotals } from "../../../hooks/useCardTotals";
 import { useAuth } from "../../../context/authContext";
@@ -78,8 +77,6 @@ function CardManagement() {
                     setSuccess={logs.setSuccess}
                     canAddQuantity={canAddQuantity}
                 />
-
-                <CardDetailsSection />
             </main>
         </div>
     );
