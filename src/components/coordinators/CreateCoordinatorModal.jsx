@@ -5,6 +5,7 @@ const INITIAL_FORM = {
     name: "",
     job: "منسق",
     company_name: "",
+    email_discount: "لا",
     health_certificate_issuance_date: "",
     health_certificate_expiry_date: "",
     national_id_number: "",
@@ -104,6 +105,7 @@ export default function CreateCoordinatorModal({
             >
                 <div className="mb-5 flex items-center justify-between">
                     <h2 className="text-xl font-bold">إضافة منسق جديد</h2>
+
                     <button type="button" onClick={onClose}>
                         إغلاق
                     </button>
@@ -115,6 +117,7 @@ export default function CreateCoordinatorModal({
                             <label className="mb-1 block text-sm font-semibold">
                                 {field.label}
                             </label>
+
                             <input
                                 type={field.type || "text"}
                                 required={Boolean(field.required)}
@@ -127,6 +130,8 @@ export default function CreateCoordinatorModal({
                             />
                         </div>
                     ))}
+
+                    {/* المحافظة */}
                     <div>
                         <label className="mb-1 block text-sm font-semibold">
                             المحافظة
@@ -146,10 +151,12 @@ export default function CreateCoordinatorModal({
                         </select>
                     </div>
 
+                    {/* الوظيفة */}
                     <div>
                         <label className="mb-1 block text-sm font-semibold">
                             الوظيفة
                         </label>
+
                         <select
                             value={form.job}
                             onChange={(event) =>
@@ -164,10 +171,12 @@ export default function CreateCoordinatorModal({
                         </select>
                     </div>
 
+                    {/* الحالة */}
                     <div>
                         <label className="mb-1 block text-sm font-semibold">
                             الحالة
                         </label>
+
                         <select
                             value={form.states}
                             onChange={(event) =>
@@ -181,10 +190,12 @@ export default function CreateCoordinatorModal({
                         </select>
                     </div>
 
+                    {/* الموقف الأمني */}
                     <div>
                         <label className="mb-1 block text-sm font-semibold">
                             الموقف الأمني
                         </label>
+
                         <select
                             value={form.security_situation}
                             onChange={(event) =>
@@ -192,15 +203,36 @@ export default function CreateCoordinatorModal({
                             }
                             className="w-full rounded-lg border border-gray-300 p-2.5"
                         >
+                            <option value="">اختر الموقف الأمني</option>
                             <option value="سليم">سليم</option>
                             <option value="غير سليم">غير سليم</option>
                         </select>
                     </div>
 
+                    {/* خصم إيميل */}
+                    <div>
+                        <label className="mb-1 block text-sm font-semibold">
+                            خصم إيميل
+                        </label>
+
+                        <select
+                            value={form.email_discount}
+                            onChange={(event) =>
+                                updateField("email_discount", event.target.value)
+                            }
+                            className="w-full rounded-lg border border-gray-300 p-2.5"
+                        >
+                            <option value="لا">لا</option>
+                            <option value="نعم">نعم</option>
+                        </select>
+                    </div>
+
+                    {/* ملاحظات */}
                     <div className="sm:col-span-2">
                         <label className="mb-1 block text-sm font-semibold">
                             ملاحظات
                         </label>
+
                         <textarea
                             rows={3}
                             value={form.notes}

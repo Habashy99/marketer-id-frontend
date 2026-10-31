@@ -25,6 +25,7 @@ const API_FIELD_MAP = {
     number_of_print_copies: "numberOfPrintcopies",
     security_situation: "securitySituation",
     states: "states",
+    email_discount: "emailDiscount",
 };
 
 const FIELD_LABELS = {
@@ -45,6 +46,7 @@ const FIELD_LABELS = {
     number_of_print_copies: "عدد نسخ الطباعة",
     security_situation: "الموقف الأمني",
     states: "الحالة",
+    email_discount: "خصم ايميل",
 };
 
 const PHOTO_FIELDS = [
@@ -341,6 +343,20 @@ export default function CoordinatorDetailsModal({
                     }
                     className={commonClasses}
                 />
+            );
+        } else if (key === "email_discount") {
+            input = (
+                <select
+                    value={value}
+                    onChange={(event) =>
+                        handleChange(key, event.target.value)
+                    }
+                    className={commonClasses}
+                >
+                    <option value="">اختر خصم الإيميل</option>
+                    <option value="لا">لا</option>
+                    <option value="نعم">نعم</option>
+                </select>
             );
         } else {
             input = (

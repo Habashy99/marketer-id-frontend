@@ -48,6 +48,7 @@ export default function CoordinatorsTable({
                             "انتهاء الشهادة الصحية",
                             "الصورة الشخصية",
                             "الاستثناءات",
+                            "خصم ايميل",
                             "طباعة الكارت",
                         ].map((heading) => (
                             <th
@@ -188,6 +189,9 @@ export default function CoordinatorsTable({
                                     ) : (
                                         "لا توجد استثناءات"
                                     )}
+                                </td>
+                                 <td className="p-3">
+                                    {coordinator.email_discount ?? "لا"}
                                 </td>
 
                                 {/* Print card */}
