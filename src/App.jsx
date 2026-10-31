@@ -10,6 +10,7 @@ import PricingHome from "./pages/pricing/pricingHome.jsx";
 import PrintLogManagment from "./pages/marketing/printLogs/printLogsManagement.jsx";
 import CardDesigner from "./pages/marketing/cardDesigner/cardDesigner.jsx";
 import CardManagement from "./pages/marketing/cardManagement/cardManagement.jsx";
+import TemporaryCoordinators from "./pages/marketing/temporaryCoordinator/temporaryCoordinator.jsx";
 
 function App() {
     return (
@@ -27,7 +28,11 @@ function App() {
                         path="/marketing/printer-log"
                         element={<PrintLogManagment />}
                     />
-                     <Route
+                    <Route
+                        path="/marketing/temporary-coordinators"
+                        element={<TemporaryCoordinators />}
+                    />
+                    <Route
                         path="/marketing/card-management"
                         element={<CardManagement />}
                     />

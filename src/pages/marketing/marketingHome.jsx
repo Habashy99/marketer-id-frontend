@@ -29,6 +29,12 @@ const marketingSections = [
         path: "/marketing/card-management",
         parentPermission: 12,
     },
+    {
+        title: "نظام إدارة المنسقين المؤقتين",
+        description: "إدارة بيانات المنسقين المؤقتين وفترات عملهم",
+        path: "/marketing/temporary-coordinators",
+        parentPermission: 27, 
+    },
 ];
 
 const cards = [
@@ -120,7 +126,7 @@ function MarketingHome() {
                 if (!response?.stats) {
                     throw new Error(
                         response?.message ||
-                            "استجابة السيرفر لا تحتوي على الإحصائيات."
+                        "استجابة السيرفر لا تحتوي على الإحصائيات."
                     );
                 }
 
@@ -436,10 +442,10 @@ function MarketingHome() {
                                                         <td className="whitespace-nowrap px-4 py-3">
                                                             {record.health_certificate_expiry_date
                                                                 ? new Date(
-                                                                      record.health_certificate_expiry_date
-                                                                  ).toLocaleDateString(
-                                                                      "en-GB"
-                                                                  )
+                                                                    record.health_certificate_expiry_date
+                                                                ).toLocaleDateString(
+                                                                    "en-GB"
+                                                                )
                                                                 : "-"}
                                                         </td>
                                                     </tr>
